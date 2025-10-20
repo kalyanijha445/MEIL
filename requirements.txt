@@ -1,0 +1,6 @@
+Flask
+Werkzeug
+google-generativeai
+opencv-python
+uuid
+gunicorn
