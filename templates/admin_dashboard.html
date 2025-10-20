@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | MEIL</title>
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+<!-- Fonts and Icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<!-- Chart.js library for the graph -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --primary-red-light: #ffebee;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --success: #2ecc71;
+        --success-light: #e8f9f1;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); overflow: hidden; }
+    .app-container { width: 100%; margin: 0 auto; background-color: var(--white); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; height: 100vh; }
+    
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+    .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+    .header-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+    .header-logo-placeholder { width: 40px; } 
+    
+    .app-container.panel-open > .app-header, 
+    .app-container.panel-open > .main-content,
+    .app-container.panel-open > .app-footer { 
+        filter: blur(4px); pointer-events: none; user-select: none; transition: filter 0.4s;
+    }
+
+    .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+    .user-panel.active { transform: translateX(0); }
+    .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+    .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+    .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); background-color: rgba(255, 255, 255, 0.25); }
+    .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); }
+    .close-user-panel-btn::before { transform: rotate(45deg); } .close-user-panel-btn::after { transform: rotate(-45deg); }
+    .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+    .user-avatar i { font-size: 45px; color: var(--white); } #user-panel-name { font-size: 20px; font-weight: 600; } #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+    .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+    .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin-bottom: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+    .info-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+    .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; } .info-item:last-child { margin-bottom: 0; }
+    .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; } .info-label { font-size: 12px; color: var(--text-light); } .info-value { font-weight: 500; font-size: 15px; }
+    .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin-top: 10px; transition: opacity 0.2s; }
+    .logout-btn:hover { opacity: 0.85; }
+
+    .side-menu { position: fixed; top: 0; height: 100%; background-color: var(--white); box-shadow: var(--shadow); transform: translateX(-110%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1000; left: 0; width: 280px; }
+    .side-menu.active { transform: translateX(0); }
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0s 0.4s; z-index: 999; }
+    .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+    .menu-header { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+    .menu-logo { height: 40px; }
+    .menu-brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-dark); }
+    .menu-list { list-style: none; padding: 10px 0; }
+    .menu-list .collapsible-header { display: flex; align-items: center; padding: 15px 20px; color: var(--text-dark); text-decoration: none; font-weight: 500; transition: background-color 0.2s; cursor: pointer; position: relative; }
+    .menu-list .collapsible-header:hover { background-color: var(--bg-light); }
+    .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+    .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+    .collapsible-content { padding: 5px 20px 15px 25px; font-size: 14px; color: var(--text-light); max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; line-height: 1.6; }
+    .collapsible-content h4 { font-weight: 600; color: var(--primary-blue); margin-top: 10px; margin-bottom: 8px; font-size: 15px; }
+    .collapsible-content ul { list-style: none; padding-left: 0; }
+    .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+    .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+    .collapsible-content a:hover { text-decoration: underline; }
+    .collapsible-content .contact-label { font-weight: 600; color: var(--text-dark); }
+
+    .main-content { padding: 20px 20px 80px 20px; flex-grow: 1; overflow-y: auto; }
+    .welcome-banner { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, var(--primary-blue) 0%, #6a7ff2 100%); color: white; padding: 25px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(90,103,242,0.3); }
+    .welcome-banner h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+    .welcome-banner p { font-size: 14px; opacity: 0.9; max-width: 250px; }
+    .banner-icon i { font-size: 48px; opacity: 0.2; }
+    
+    .quick-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+    .action-card { padding: 20px; border-radius: 18px; text-decoration: none; color: var(--white); display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .action-card:hover { transform: translateY(-5px); }
+    .reports-card { background: linear-gradient(135deg, #42a5f5, #1e88e5); box-shadow: 0 8px 25px rgba(30, 136, 229, 0.3); }
+    .live-card { background: linear-gradient(135deg, #ef5350, #e53935); box-shadow: 0 8px 25px rgba(229, 57, 53, 0.3); }
+    .card-icon { font-size: 32px; margin-bottom: 20px; }
+    .action-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .action-card p { font-size: 12px; opacity: 0.9; }
+    .arrow-icon { position: absolute; bottom: 15px; right: 15px; font-size: 24px; opacity: 0.7; }
+    
+    .section-container { margin-bottom: 30px; }
+    .section-header { margin-bottom: 15px; }
+    .section-header h2 { font-size: 22px; font-weight: 700; }
+    .section-header p { font-size: 14px; color: var(--text-light); }
+
+    .graph-container { background-color: var(--white); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); }
+
+    .projects-list-wrapper { display: flex; flex-direction: column; gap: 15px; max-height: 440px; overflow: hidden; transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+    .projects-list-wrapper.expanded { max-height: 2000px; }
+
+    .project-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: var(--white);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .project-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    .project-info-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .project-icon-wrapper { width: 45px; height: 45px; border-radius: 10px; background-color: var(--primary-blue-light); color: var(--primary-blue); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .project-details { display: flex; flex-direction: column; }
+    .project-name { font-weight: 600; font-size: 15px; color: var(--text-dark); }
+    .project-code { font-size: 12px; color: var(--text-light); }
+
+    .project-progress-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 5px;
+    }
+
+    .progress-bar-wrapper {
+        flex-grow: 1;
+        height: 10px;
+        background-color: var(--bg-light);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .project-progress-bar {
+        width: var(--progress);
+        height: 100%;
+        border-radius: 20px;
+        transform-origin: left;
+        transform: scaleX(0); 
+        animation: animateProgressBar 1.5s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
+        transition: background 0.5s ease;
+    }
+    
+    .project-progress-bar.progress-red {
+         background: linear-gradient(135deg, #fca5a5, #ef4444); /* red-300 to red-500 */
+    }
+    .project-progress-bar.progress-yellow {
+         background: linear-gradient(135deg, #fcd34d, #f59e0b); /* amber-300 to amber-500 */
+    }
+    .project-progress-bar.progress-green {
+         background: linear-gradient(135deg, #86efac, #22c55e); /* green-300 to green-500 */
+    }
+
+    @keyframes animateProgressBar {
+        to { transform: scaleX(1); }
+    }
+
+    .progress-percentage {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .project-extra-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--text-light);
+    }
+
+    .project-team, .project-update {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .project-extra-details i {
+        font-size: 18px;
+        color: var(--primary-blue);
+    }
+
+    .project-update {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .project-update span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .show-more-container { text-align: center; margin-top: 20px; }
+    .show-more-btn { background: none; border: none; font-family: 'Poppins', sans-serif; font-weight: 600; color: var(--primary-blue); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 10px; }
+    .show-more-btn i { font-size: 22px; transition: transform 0.4s ease; }
+    .show-more-btn.expanded i { transform: rotate(180deg); }
+
+    .app-footer {
+        display: flex;
+        justify-content: space-around;
+        padding: 10px 0;
+        background-color: var(--white);
+        border-top: 1px solid var(--border-color);
+        position: fixed; 
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        z-index: 50;
+    }
+    .footer-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-light); text-decoration: none; font-size: 12px; width: 80px; }
+    .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+    .footer-btn.active { color: var(--primary-blue); }
+</style>
+</head>
+<body>
+    <div class="app-container" id="app-container">
+        <!-- Overlay and Side Menu (no change) -->
+        <div class="overlay" id="overlay"></div>
+        <nav class="side-menu" id="side-menu">
+            <div class="menu-header">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+                <span class="menu-brand-name">MEIL</span>
+            </div>
+            <ul class="menu-list">
+                <li>
+                    <div class="collapsible-header" data-target="about-content">
+                        <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="about-content">
+                        <h4>Our Mission</h4>
+                        <p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                        <h4>Core Values</h4>
+                        <ul>
+                            <li><i class='bx bx-shield-quarter'></i> Safety First</li>
+                            <li><i class='bx bx-bulb'></i> Proactive Reporting</li>
+                        </ul>
+                    </div>
+                </li>
+                 <li>
+                    <div class="collapsible-header" data-target="contact-content">
+                        <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="contact-content">
+                         <h4>Support Channels</h4>
+                         <ul>
+                            <li>
+                                <i class='bx bx-support'></i>
+                                <div>
+                                    <div class="contact-label">General Helpdesk</div>
+                                    <a href="mailto:safety.support@meil.com">safety.support@meil.com</a>
+                                </div>
+                            </li>
+                            <li>
+                                <i class='bx bx-error'></i>
+                                <div>
+                                    <div class="contact-label">Technical Issues</div>
+                                    <a href="mailto:tech.support@meil.com">tech.support@meil.com</a>
+                                </div>
+                            </li>
+                         </ul>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+<!-- User Panel (No changes) -->
+    <aside class="user-panel" id="user-panel">
+        <div class="user-panel-header">
+            <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close user menu"></button>
+            <div class="user-avatar"><i class='bx bxs-user'></i></div>
+            <h3 id="user-panel-name">Loading...</h3>
+            <p id="user-panel-email">Loading...</p>
+        </div>
+        <div class="user-panel-body">
+            <div class="info-card">
+                <h4>Profile Details</h4>
+                <div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div>
+                <div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div>
+            </div>
+            <div class="info-card">
+                <h4>Project Info</h4>
+                <div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div>
+            </div>
+            <div class="info-card">
+                <h4>Emergency Contact</h4>
+                <div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div>
+                <div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+        </div>
+    </aside>
+
+    <!-- App Header (No changes) -->
+    <header class="app-header">
+        <i class='bx bx-menu header-icon' id="menu-btn"></i>
+        <h2 class="header-title">Admin Dashboard</h2>
+        <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <section class="welcome-banner">
+            <div class="banner-text">
+                <h1>Welcome Back, <span id="admin-name">Admin</span>!</h1>
+                <p>Oversee all operations and monitor progress from here.</p>
+            </div>
+            <div class="banner-icon"><i class='bx bxs-dashboard'></i></div>
+        </section>
+        <section class="quick-actions-grid">
+            <a href="{{ url_for('track_reports_ad') }}" class="action-card reports-card">
+                <div class="card-icon"><i class='bx bxs-file-blank'></i></div>
+                <h3>View Reports</h3>
+                <p>Analyze safety & attendance</p>
+                <i class='bx bx-chevron-right-circle arrow-icon'></i>
+            </a>
+            <a href="{{ url_for('live_view') }}" class="action-card live-card">
+                <div class="card-icon"><i class='bx bxs-video'></i></div>
+                <h3>Go Live</h3>
+                <p>Monitor sites in real-time</p>
+                <i class='bx bx-chevron-right-circle arrow-icon'></i>
+            </a>
+        </section>
+        <section class="section-container">
+            <div class="section-header">
+                <h2>Overall Growth</h2>
+                <p>Last 6 months safety compliance score</p>
+            </div>
+            <div class="graph-container">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </section>
+        <section class="section-container">
+            <div class="section-header">
+                <h2>Active Projects ({{ projects|length }})</h2>
+                <p>Overview of all ongoing projects</p>
+            </div>
+            <!-- START: HTML MODIFICATIONS FOR PROJECTS -->
+            <div class="projects-list-wrapper" id="projects-list-wrapper" data-total-projects="{{ projects|length }}">
+                {# Create a list of varied default progress values #}
+                {% set default_progresses = [28, 92, 65, 41, 85, 55, 22] %}
+                {% for project in projects %}
+                {# Assign a default from the list if project.progress is not defined #}
+                {% set progress = project.progress | default(default_progresses[loop.index0 % 7]) %}
+                <div class="project-item">
+                    <div class="project-info-header">
+                        <div class="project-icon-wrapper">
+                            <!-- LINTER ERROR FIX: This syntax is clean and prevents parsing errors. -->
+                            <i class="bx {{ 'bx-recycle' if project.name == 'Waste Management Plant' else project.icon }}"></i>
+                        </div>
+                        <div class="project-details">
+                            <span class="project-name">{{ project.name }}</span>
+                            <span class="project-code">{{ project.code }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-progress-container">
+                        <div class="progress-bar-wrapper">
+                            <!-- DYNAMIC COLOR: Added Jinja logic to apply the correct color class -->
+                            <div class="project-progress-bar {% if progress <= 30 %}progress-red{% elif progress <= 70 %}progress-yellow{% else %}progress-green{% endif %}" style="--progress: {{ progress }}%;"></div>
+                        </div>
+                        <span class="progress-percentage">{{ progress }}%</span>
+                    </div>
+
+                    <div class="project-extra-details">
+                        <div class="project-team">
+                            <i class='bx bxs-group'></i>
+                            <span>{{ project.team_size | default(12) }} Members</span>
+                        </div>
+                        <div class="project-update">
+                            <i class='bx bx-calendar-check'></i>
+                            <span>{{ project.latest_update | default('Review Meeting Scheduled') }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- END: HTML MODIFICATIONS FOR PROJECTS -->
+            <div class="show-more-container" id="show-more-projects-container">
+                <button class="show-more-btn" id="show-more-projects-btn">
+                    <span>Show More</span><i class='bx bx-chevron-down'></i>
+                </button>
+            </div>
+        </section>
+    </main>
+    
+    <!-- App Footer (No changes to HTML structure) -->
+    <footer class="app-footer">
+        <a href="{{ url_for('admin_dashboard') }}" class="footer-btn active">
+            <i class='bx bxs-home'></i>
+            <span>Home</span>
+        </a>
+        <a href="{{ url_for('notices_ad') }}" class="footer-btn">
+            <i class='bx bxs-bell'></i>
+            <span>Notices</span>
+        </a>
+    </footer>
+</div>
+
+<!-- Script (No changes) -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.getElementById('app-container');
+    const menuBtn = document.getElementById('menu-btn');
+    const sideMenu = document.getElementById('side-menu');
+    const overlay = document.getElementById('overlay');
+    const collapsibles = document.querySelectorAll('.collapsible-header');
+    
+    const userBtn = document.getElementById('user-btn');
+    const userPanel = document.getElementById('user-panel');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+
+    userBtn.addEventListener('click', () => {
+        userPanel.classList.add('active');
+        appContainer.classList.add('panel-open');
+    });
+
+    closeUserPanelBtn.addEventListener('click', () => {
+        userPanel.classList.remove('active');
+        if (!sideMenu.classList.contains('active')) {
+            appContainer.classList.remove('panel-open');
+        }
+    });
+    
+    const toggleSideMenu = () => {
+        overlay.classList.toggle('active');
+        sideMenu.classList.toggle('active');
+        appContainer.classList.toggle('panel-open');
+    };
+
+    menuBtn.addEventListener('click', toggleSideMenu);
+
+    overlay.addEventListener('click', () => {
+        if (sideMenu.classList.contains('active')) {
+            toggleSideMenu();
+        }
+    });
+
+    collapsibles.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = document.getElementById(header.dataset.target);
+            const arrow = header.querySelector('.arrow');
+            if(content.style.maxHeight) {
+                content.style.maxHeight = null;
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                collapsibles.forEach(otherHeader => {
+                    const otherContent = document.getElementById(otherHeader.dataset.target);
+                    if (otherContent.style.maxHeight) {
+                        otherContent.style.maxHeight = null;
+                        otherHeader.querySelector('.arrow').style.transform = 'rotate(0deg)';
+                    }
+                });
+                content.style.maxHeight = content.scrollHeight + 'px';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            
+            document.getElementById('admin-name').textContent = data.name.split(' ')[0] || 'Admin';
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+        } catch (error) { 
+            console.error("Error loading user info:", error);
+            document.getElementById('user-panel-name').textContent = 'Error Loading Data';
+        }
+    };
+    loadUserInfo();
+    
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(90, 103, 242, 0.5)');   
+    gradient.addColorStop(1, 'rgba(90, 103, 242, 0)');
+    const chartData = {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Compliance Score', data: [65, 72, 70, 81, 78, 88],
+            backgroundColor: gradient, borderColor: 'rgba(90, 103, 242, 1)', borderWidth: 3,
+            pointBackgroundColor: '#ffffff', pointBorderColor: 'rgba(90, 103, 242, 1)', pointBorderWidth: 3,
+            pointRadius: 6, pointHoverRadius: 8, tension: 0.4, fill: true,
+        }]
+    };
+    const chartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: false, grid: { drawBorder: false } }, x: { grid: { display: false } } }
+    };
+    new Chart(ctx, { type: 'line', data: chartData, options: chartOptions });
+
+    const showMoreBtn = document.getElementById('show-more-projects-btn');
+    const projectsListWrapper = document.getElementById('projects-list-wrapper');
+    const totalProjects = parseInt(projectsListWrapper.dataset.totalProjects, 10) || 0;
+    
+    if (totalProjects <= 5) {
+         document.getElementById('show-more-projects-container').style.display = 'none';
+    }
+    showMoreBtn.addEventListener('click', () => {
+        projectsListWrapper.classList.toggle('expanded');
+        showMoreBtn.classList.toggle('expanded');
+        const btnText = showMoreBtn.querySelector('span');
+        btnText.textContent = projectsListWrapper.classList.contains('expanded') ? 'Show Less' : 'Show More';
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notices | MEIL</title>
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+    <!-- Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* CSS RESET & DEFAULTS */
+        :root {
+            --primary-blue: #5a67f2;
+            --primary-blue-light: #eaefff;
+            --primary-red: #ef5350;
+            --primary-red-light: #ffebee;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #f8f9fa;
+            --border-color: #e0e0e0;
+            --white: #ffffff;
+            --success: #2ecc71;
+            --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        /* MODIFICATION START: Fix for mobile viewport height */
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Prevent page bouncing */
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+        .app-container { width: 100%; margin: 0 auto; background-color: var(--white); height: 100%; display: flex; flex-direction: column; position: relative; overflow-x: hidden; }
+        /* MODIFICATION END */
+        
+        /* --- UNIFIED LAYOUT STYLES --- */
+        .app-container.panel-open > .app-header, .app-container.panel-open > .main-content, .app-container.panel-open > .add-fab, .app-container.panel-open > .app-footer { filter: blur(4px); transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; user-select: none; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+        .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+        .header-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+        .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+        .user-panel.active { transform: translateX(0); }
+        .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+        .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease, background-color 0.3s ease; }
+        .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); background-color: rgba(255, 255, 255, 0.25); }
+        .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); border-radius: 1px; }
+        .close-user-panel-btn::before { transform: rotate(45deg); } .close-user-panel-btn::after { transform: rotate(-45deg); }
+        .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+        .user-avatar i { font-size: 45px; color: var(--white); } #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; } #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400; }
+        .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+        .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin: 0 auto 18px auto; max-width: 480px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color); }
+        .info-card h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+        .user-panel .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; } .user-panel .info-item:last-child { margin-bottom: 0; }
+        .user-panel .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; width: 24px; text-align: center; } .user-panel .info-label { font-size: 12px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 3px; }
+        .user-panel .info-value { font-weight: 500; font-size: 15px; color: var(--text-dark); overflow-wrap: break-word; word-break: break-word; }
+        .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s; max-width: 480px; } .logout-btn:hover { opacity: 0.85; }
+
+        .side-menu { position: fixed; top: 0; height: 100%; background-color: var(--white); box-shadow: var(--shadow); transform: translateX(-110%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1000; left: 0; width: 280px; }
+        .side-menu.active { transform: translateX(0); }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0s 0.4s; z-index: 999; }
+        .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+        .menu-header { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        .menu-logo { height: 40px; }
+        .menu-brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-dark); }
+        .menu-list { list-style: none; padding: 10px 0; }
+        .menu-list li a, .menu-list .collapsible-header { display: flex; align-items: center; padding: 15px 20px; color: var(--text-dark); text-decoration: none; font-weight: 500; transition: background-color 0.2s; cursor: pointer; position: relative; }
+        .menu-list li a:hover, .menu-list .collapsible-header:hover { background-color: var(--bg-light); }
+        .menu-list li a.active { background-color: var(--primary-blue-light); color: var(--primary-blue); font-weight: 600; }
+        .menu-list li a.active::before { content: ''; position: absolute; left: 0; top: 50%; height: 28px; width: 5px; background-color: var(--primary-blue); border-radius: 0 4px 4px 0; transform: translateY(-50%); }
+        .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+        .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+        .collapsible-content { padding: 5px 20px 15px 25px; font-size: 14px; color: var(--text-light); max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; line-height: 1.6; }
+        .collapsible-content h4 { font-weight: 600; color: var(--primary-blue); margin-top: 10px; margin-bottom: 8px; font-size: 15px; }
+        .collapsible-content ul { list-style: none; padding-left: 0; }
+        .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+        .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+        .collapsible-content .contact-label { font-weight: 600; color: var(--text-dark); }
+
+        /* --- PAGE-SPECIFIC STYLES --- */
+        .main-content { padding: 20px 20px 80px; flex-grow: 1; overflow-y: auto; }
+        .page-header { margin-bottom: 25px; }
+        .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .page-header p { font-size: 16px; color: var(--text-light); }
+        .notice-card { background: var(--white); border: 1px solid var(--border-color); border-radius: 16px; margin-bottom: 20px; box-shadow: var(--shadow); position: relative; }
+        .notice-card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        .notice-title { font-size: 18px; font-weight: 600; color: var(--text-dark); margin-bottom: 5px; }
+        .notice-meta { display: flex; align-items: center; gap: 15px; font-size: 13px; color: var(--text-light); flex-wrap: wrap;}
+        .notice-meta span { display: flex; align-items: center; gap: 6px; }
+        .notice-meta i { font-size: 16px; }
+        .notice-card-body { padding: 20px; line-height: 1.7; color: #34495e; }
+        .notice-card-body p { margin-bottom: 10px; }
+        .notice-attachments { padding: 0 20px 20px; }
+        .notice-attachments h5 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+        .attachments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+        .attachment-img { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; }
+        .delete-notice-btn { position: absolute; top: 15px; right: 15px; width: 36px; height: 36px; border-radius: 50%; border: none; background-color: var(--primary-red-light); color: var(--primary-red); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .delete-notice-btn:hover { background-color: var(--primary-red); color: var(--white); transform: scale(1.1); }
+        .no-records-message { text-align: center; padding: 40px; color: var(--text-light); }
+        .no-records-message i { font-size: 60px; margin-bottom: 15px; }
+        .add-fab { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; background: var(--primary-blue); color: white; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 5px 20px rgba(90,103,242,0.4); cursor: pointer; transition: all 0.3s; z-index: 900; }
+        .add-fab:hover { transform: scale(1.1); box-shadow: 0 8px 25px rgba(90,103,242,0.5); }
+        .hidden { display: none !important; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--white); z-index: 1200; transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); display: flex; flex-direction: column; }
+        .modal-overlay.active { transform: translateY(0); }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .modal-header-content { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto; }
+        .modal-title { font-size: 20px; font-weight: 600; }
+        .modal-actions button { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-dark); }
+        .modal-actions .save-btn { font-size: 16px; background: var(--primary-blue); color: var(--white); font-weight: 600; padding: 8px 20px; border-radius: 8px; }
+        .modal-body { overflow-y: auto; flex-grow: 1; padding: 25px; }
+        #notice-form { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 25px; }
+        .form-group label { font-size: 14px; font-weight: 600; color: var(--text-dark); margin-bottom: 10px; display: block; }
+        .form-group input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'Poppins'; }
+        .auto-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; background: var(--bg-light); padding: 15px; border-radius: 8px; }
+        .info-item { display: flex; align-items: center; gap: 10px; }
+        .info-item i { font-size: 22px; color: var(--primary-blue); }
+        .info-item-text span { display: block; font-size: 12px; color: var(--text-light); }
+        .info-item-text strong { font-size: 14px; color: var(--text-dark); font-weight: 500; }
+        .rte-toolbar { border: 1px solid var(--border-color); border-bottom: none; padding: 10px; border-radius: 8px 8px 0 0; display: flex; gap: 5px; flex-wrap: wrap;}
+        .rte-btn { width: 36px; height: 36px; background: var(--white); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+        .rte-btn:hover { background-color: var(--bg-light); }
+        .rte-btn i { font-size: 20px; color: var(--text-dark); transition: color 0.2s; }
+        .rte-btn.active { background-color: var(--primary-blue-light); border-color: var(--primary-blue); }
+        .rte-btn.active i { color: var(--primary-blue); }
+        .rte-content { border: 1px solid var(--border-color); min-height: 200px; padding: 15px; border-radius: 0 0 8px 8px; outline: none; line-height: 1.7; }
+        #image-upload-label { padding: 20px; background: var(--primary-blue-light); border: 2px dashed var(--primary-blue); border-radius: 12px; cursor: pointer; text-align: center; color: var(--primary-blue); }
+        #image-upload-label i { font-size: 32px; display: block; margin-bottom: 8px; }
+        #image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; margin-top: 15px; }
+        .preview-item { position: relative; }
+        .preview-img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
+        .remove-img-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(0,0,0,0.6); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; font-size: 18px;}
+        .confirm-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1500; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .confirm-modal-overlay.active { opacity: 1; visibility: visible; }
+        .confirm-modal-box { background-color: var(--white); border-radius: 16px; padding: 30px; text-align: center; width: 90%; max-width: 350px; }
+        .confirm-modal-box h4 { font-size: 18px; margin-bottom: 8px;}
+        .confirm-modal-box p { font-size: 14px; color: var(--text-light); margin-bottom: 25px; }
+        .confirm-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .modal-btn { padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .modal-btn.cancel { background-color: #f1f2f6; color: var(--text-dark); }
+        .modal-btn.confirm { background-color: var(--primary-red); color: var(--white); }
+        .modal-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .notification-toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 14px 24px; border-radius: 12px; z-index: 9999; font-weight: 500; box-shadow: var(--shadow); transition: bottom 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+        .notification-toast.show { bottom: 30px; }
+        .notification-toast.error { background-color: var(--primary-red-light); color: var(--primary-red); border: 1px solid var(--primary-red); }
+        .notification-toast.success { background-color: #e8f9f1; color: var(--success); border: 1px solid var(--success);}
+
+        .app-footer { display: flex; justify-content: space-around; padding: 10px 0; background-color: var(--white); border-top: 1px solid var(--border-color); z-index: 50; flex-shrink: 0; }
+        .footer-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-light); text-decoration: none; font-size: 12px; width: 80px; }
+        .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+        .footer-btn.active { color: var(--primary-blue); }
+
+    </style>
+</head>
+<body>
+    <div class="app-container" id="app-container">
+        
+        <div class="overlay" id="overlay"></div>
+        <nav class="side-menu" id="side-menu">
+            <div class="menu-header">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+                <span class="menu-brand-name">MEIL</span>
+            </div>
+            <ul class="menu-list">
+                <li><a href="{{ url_for('SM_dashboard') }}"><i class='bx bxs-home'></i> Home</a></li>
+                <li>
+                    <div class="collapsible-header" data-target="about-content">
+                        <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="about-content">
+                        <h4>Our Mission</h4>
+                        <p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                        <h4>Core Values</h4>
+                        <ul>
+                            <li><i class='bx bx-shield-quarter'></i> Safety First</li>
+                            <li><i class='bx bx-bulb'></i> Proactive Reporting</li>
+                        </ul>
+                    </div>
+                </li>
+                 <li>
+                    <div class="collapsible-header" data-target="contact-content">
+                        <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="contact-content">
+                         <h4>Support Channels</h4>
+                         <ul>
+                            <li><i class='bx bx-support'></i><div><div class="contact-label">General Helpdesk</div><a href="mailto:safety.support@meil.com">safety.support@meil.com</a></div></li>
+                            <li><i class='bx bx-error'></i><div><div class="contact-label">Technical Issues</div><a href="mailto:tech.support@meil.com">tech.support@meil.com</a></div></li>
+                         </ul>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        
+        <aside class="user-panel" id="user-panel">
+            <div class="user-panel-header">
+                <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close user menu"></button>
+                <div class="user-avatar"><i class='bx bxs-user'></i></div>
+                <h3 id="user-panel-name">Loading...</h3><p id="user-panel-email">Loading...</p>
+            </div>
+            <div class="user-panel-body">
+                <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+                <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+                <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+            </div>
+        </aside>
+
+        <header class="app-header">
+            <i class='bx bx-menu header-icon' id="menu-btn"></i>
+            <h2 class="header-title">Notice Board</h2>
+            <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+        </header>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Announcements</h1>
+                <p>Stay updated with the latest company notices.</p>
+            </div>
+            
+            <div id="notice-list-container">
+                {% for notice in notices %}
+                <div class="notice-card" data-notice-id="{{ notice.id }}">
+                    <div class="notice-card-header">
+                        <h3 class="notice-title">{{ notice.title }}</h3>
+                        <div class="notice-meta">
+                            <span><i class='bx bxs-calendar'></i>{{ notice.date }}</span>
+                            <span><i class='bx bxs-time'></i>{{ notice.time }}</span>
+                            <span><i class='bx bxs-map'></i>{{ notice.location }}</span>
+                        </div>
+                    </div>
+                    <div class="notice-card-body">
+                        {{ notice.content | safe }}
+                    </div>
+                    {% if notice.images %}
+                    <div class="notice-attachments">
+                        <h5>Attachments</h5>
+                        <div class="attachments-grid">
+                            {% for img_path in notice.images %}
+                            <img src="{{ url_for('static', filename=img_path) }}" alt="Attachment" class="attachment-img">
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <button class="delete-notice-btn" aria-label="Delete notice"><i class='bx bxs-trash'></i></button>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="no-records-message {% if notices %}hidden{% endif %}" id="no-notices-message">
+                <i class='bx bx-bell-off'></i><h3>No Notices Yet</h3><p>Create the first notice to inform your team.</p>
+            </div>
+        </main>
+        
+        <button class="add-fab" id="add-notice-btn" aria-label="Add new notice"><i class='bx bx-plus'></i></button>
+
+        <div class="modal-overlay" id="add-notice-overlay">
+            <div class="modal-header">
+                <div class="modal-header-content">
+                    <h3 class="modal-title">Create New Notice</h3>
+                    <div class="modal-actions">
+                        <button id="close-notice-modal" aria-label="Close"><i class='bx bx-x'></i></button>
+                        <button type="submit" form="notice-form" class="save-btn" id="save-notice-btn">Save</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <form id="notice-form">
+                    <div class="form-group">
+                        <label for="notice-title-input">Notice Title</label>
+                        <input type="text" id="notice-title-input" required placeholder="e.g., Important Safety Meeting">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Auto-captured Information</label>
+                        <div class="auto-info-grid">
+                            <div class="info-item">
+                                <i class='bx bxs-calendar'></i>
+                                <div class="info-item-text"><span>Date</span><strong id="notice-date">...</strong></div>
+                            </div>
+                            <div class="info-item">
+                                <i class='bx bxs-time'></i>
+                                <div class="info-item-text"><span>Time</span><strong id="notice-time">...</strong></div>
+                            </div>
+                            <div class="info-item">
+                                <i class='bx bxs-map'></i>
+                                <div class="info-item-text"><span>Location (Lat, Lon)</span><strong id="notice-location">Fetching...</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Content</label>
+                        <div class="rte-toolbar" id="rte-toolbar">
+                            <button type="button" class="rte-btn" data-command="bold" aria-label="Bold text"><i class='bx bx-bold'></i></button>
+                            <button type="button" class="rte-btn" data-command="italic" aria-label="Italic text"><i class='bx bx-italic'></i></button>
+                            <button type="button" class="rte-btn" data-command="underline" aria-label="Underline text"><i class='bx bx-underline'></i></button>
+                            <button type="button" class="rte-btn" data-command="strikeThrough" aria-label="Strikethrough text"><i class='bx bx-strikethrough'></i></button>
+                        </div>
+                        <div id="rte-content-area" class="rte-content" contenteditable="true"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                         <label>Attachments</label>
+                         <label for="image-upload-input" id="image-upload-label">
+                            <i class='bx bxs-image-add'></i>
+                            <strong>Click to add photos</strong>
+                         </label>
+                         <input type="file" id="image-upload-input" accept="image/*" multiple class="hidden">
+                         <div id="image-preview-grid"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="confirm-modal-overlay" id="delete-confirm-overlay">
+            <div class="confirm-modal-box">
+                <h4>Confirm Deletion</h4>
+                <p>Are you sure you want to permanently delete this notice?</p>
+                <div class="confirm-modal-actions">
+                    <button class="modal-btn cancel" id="cancel-delete-btn">Cancel</button>
+                    <button class="modal-btn confirm" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="notification-toast" class="notification-toast"></div>
+
+        <footer class="app-footer">
+            <a href="{{ url_for('SM_dashboard') }}" class="footer-btn">
+                <i class='bx bxs-home'></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('notices_mr') }}" class="footer-btn active">
+                <i class='bx bxs-bell'></i>
+                <span>Notices</span>
+            </a>
+        </footer>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const appContainer = document.getElementById('app-container');
+        const userBtn = document.getElementById('user-btn');
+        const userPanel = document.getElementById('user-panel');
+        const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const sideMenu = document.getElementById('side-menu');
+        const overlay = document.getElementById('overlay');
+        const collapsibles = document.querySelectorAll('.collapsible-header');
+
+        if (menuBtn && sideMenu && overlay) {
+            const toggleSideMenu = () => {
+                overlay.classList.toggle('active');
+                sideMenu.classList.toggle('active');
+                appContainer.classList.toggle('panel-open');
+            };
+            menuBtn.addEventListener('click', toggleSideMenu);
+            overlay.addEventListener('click', () => {
+                if (sideMenu.classList.contains('active')) {
+                    toggleSideMenu();
+                }
+            });
+        }
+        
+        collapsibles.forEach(header => {
+            header.addEventListener('click', () => {
+                const content = document.getElementById(header.dataset.target);
+                const arrow = header.querySelector('.arrow');
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    arrow.style.transform = 'rotate(0deg)';
+                } else {
+                    collapsibles.forEach(otherHeader => {
+                        if (otherHeader !== header) {
+                            document.getElementById(otherHeader.dataset.target).style.maxHeight = null;
+                            otherHeader.querySelector('.arrow').style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    arrow.style.transform = 'rotate(180deg)';
+                }
+            });
+        });
+
+        if (userBtn && userPanel) {
+            userBtn.addEventListener('click', () => {
+                userPanel.classList.add('active');
+                loadUserInfo();
+            });
+            closeUserPanelBtn?.addEventListener('click', () => userPanel.classList.remove('active'));
+        }
+
+        const loadUserInfo = async () => {
+            try {
+                const response = await fetch("{{ url_for('get_user_info') }}");
+                if (!response.ok) throw new Error('Failed to fetch user info');
+                const data = await response.json();
+                document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+                document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+                document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+                document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+                document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+                document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+                document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+            } catch (error) { 
+                console.error("Error loading user info:", error);
+                document.getElementById('user-panel-name').textContent = 'Error Loading Data';
+            }
+        };
+
+        const addNoticeOverlay = document.getElementById('add-notice-overlay');
+        const addNoticeBtn = document.getElementById('add-notice-btn');
+        const closeNoticeModalBtn = document.getElementById('close-notice-modal');
+        const noticeForm = document.getElementById('notice-form');
+        const noticeListContainer = document.getElementById('notice-list-container');
+        
+        let attachedFiles = [];
+
+        const resetForm = () => {
+            noticeForm.reset();
+            document.getElementById('rte-content-area').innerHTML = '';
+            document.getElementById('image-preview-grid').innerHTML = '';
+            attachedFiles = [];
+        };
+        
+        const showNotification = (message, type = 'error') => {
+            const toast = document.getElementById('notification-toast');
+            toast.textContent = message;
+            toast.className = `notification-toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        };
+        
+        const setDateTime = () => {
+            const now = new Date();
+            document.getElementById('notice-date').textContent = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('notice-time').textContent = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        };
+
+        const getAndSetLocation = () => {
+            const locationEl = document.getElementById('notice-location');
+            if (!navigator.geolocation) {
+                locationEl.textContent = 'Geolocation not supported';
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(5);
+                    const lon = position.coords.longitude.toFixed(5);
+                    locationEl.textContent = `${lat}, ${lon}`;
+                },
+                () => { locationEl.textContent = 'Unable to retrieve location'; }
+            );
+        };
+        
+        addNoticeBtn.addEventListener('click', () => {
+            resetForm();
+            addNoticeOverlay.classList.add('active');
+            setDateTime();
+            getAndSetLocation();
+        });
+        closeNoticeModalBtn.addEventListener('click', () => {
+            addNoticeOverlay.classList.remove('active');
+        });
+
+        const rteToolbar = document.getElementById('rte-toolbar');
+        const rteContentArea = document.getElementById('rte-content-area');
+
+        const updateToolbarState = () => {
+            const buttons = rteToolbar.querySelectorAll('.rte-btn');
+            buttons.forEach(btn => {
+                const command = btn.dataset.command;
+                if (command && document.queryCommandState(command)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        };
+
+        rteToolbar.addEventListener('click', (e) => {
+            const btn = e.target.closest('.rte-btn');
+            if (btn && btn.dataset.command) {
+                document.execCommand(btn.dataset.command, false, null);
+                rteContentArea.focus();
+                updateToolbarState(); 
+            }
+        });
+        
+        rteContentArea.addEventListener('keyup', updateToolbarState);
+        rteContentArea.addEventListener('mouseup', updateToolbarState);
+
+        const imageUploadInput = document.getElementById('image-upload-input');
+        const previewGrid = document.getElementById('image-preview-grid');
+
+        imageUploadInput.addEventListener('change', () => {
+            for (const file of imageUploadInput.files) {
+                const fileIndex = attachedFiles.length; 
+                attachedFiles.push(file);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${e.target.result}" class="preview-img">
+                        <button type="button" class="remove-img-btn" data-index="${fileIndex}" aria-label="Remove image preview">&times;</button>
+                    `;
+                    previewGrid.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+            imageUploadInput.value = ''; 
+        });
+
+        previewGrid.addEventListener('click', (e) => {
+            if(e.target.classList.contains('remove-img-btn')) {
+                const indexToRemove = parseInt(e.target.dataset.index, 10);
+                if (indexToRemove >= 0 && indexToRemove < attachedFiles.length) {
+                    attachedFiles[indexToRemove] = null; 
+                }
+                e.target.closest('.preview-item').remove();
+            }
+        });
+
+        noticeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveBtn = document.getElementById('save-notice-btn');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('notice-title-input').value);
+            formData.append('content', document.getElementById('rte-content-area').innerHTML);
+            formData.append('date', document.getElementById('notice-date').textContent);
+            formData.append('time', document.getElementById('notice-time').textContent);
+            formData.append('location', document.getElementById('notice-location').textContent);
+            
+            attachedFiles.forEach(file => {
+                if(file) formData.append('images', file); 
+            });
+
+            try {
+                const response = await fetch("{{ url_for('add_notice_mr') }}", { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to save notice.');
+                }
+                 
+                showNotification(result.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+            }
+        });
+
+        const deleteConfirmOverlay = document.getElementById('delete-confirm-overlay');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        let noticeIdToDelete = null;
+
+        noticeListContainer.addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-notice-btn');
+            if (deleteBtn) {
+                noticeIdToDelete = deleteBtn.closest('.notice-card').dataset.noticeId;
+                deleteConfirmOverlay.classList.add('active');
+            }
+        });
+        
+        cancelDeleteBtn.addEventListener('click', () => deleteConfirmOverlay.classList.remove('active'));
+        
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (!noticeIdToDelete) return;
+            
+            confirmDeleteBtn.disabled = true;
+            confirmDeleteBtn.textContent = 'Deleting...';
+
+            try {
+                const response = await fetch(`/delete_notice_mr/${noticeIdToDelete}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to delete notice.');
+                }
+                
+                showNotification('Notice deleted successfully!', 'success');
+                document.querySelector(`.notice-card[data-notice-id='${noticeIdToDelete}']`).remove();
+                
+                const noNoticesMessage = document.getElementById('no-notices-message');
+                if (document.querySelectorAll('.notice-card').length === 0){
+                    noNoticesMessage.classList.remove('hidden');
+                }
+
+            } catch(error) {
+                showNotification(error.message, 'error');
+            } finally {
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.textContent = 'Delete';
+                deleteConfirmOverlay.classList.remove('active');
+                noticeIdToDelete = null;
+            }
+        });
+    });
+    </script>
+</body>
+</html>

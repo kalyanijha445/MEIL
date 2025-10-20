@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <!-- Fonts and Icons -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+    /* CSS RESET & DEFAULTS */
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --success: #2ecc71;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+    
+    .app-container { width: 100%; margin: 0 auto; background-color: var(--white); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow-x: hidden; }
+    .app-container.panel-open > .app-header,
+    .app-container.panel-open > .main-content,
+    .app-container.panel-open > .app-footer { filter: blur(4px); transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; user-select: none; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+    .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+    .header-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+    .side-menu { position: fixed; top: 0; height: 100%; background-color: var(--white); box-shadow: var(--shadow); transform: translateX(-110%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1000; left: 0; width: 280px; }
+    .side-menu.active { transform: translateX(0); }
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0s 0.4s; z-index: 999; }
+    .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+    .menu-header { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+    .menu-logo { height: 40px; }
+    .menu-brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-dark); }
+    .menu-list { list-style: none; padding: 10px 0; }
+    .menu-list li a, .menu-list .collapsible-header { display: flex; align-items: center; padding: 15px 20px; color: var(--text-dark); text-decoration: none; font-weight: 500; transition: background-color 0.2s, color 0.2s, font-weight 0.2s; cursor: pointer; position: relative; }
+    .menu-list li a:hover, .menu-list .collapsible-header:hover { background-color: var(--bg-light); }
+    .menu-list li a.active { background-color: var(--primary-blue-light); color: var(--primary-blue); font-weight: 600; }
+    
+    /* MODIFICATION START: Updated side menu active indicator style from reference file */
+    .menu-list li a.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        height: 28px;
+        width: 5px;
+        background-color: var(--primary-blue);
+        border-radius: 0 4px 4px 0;
+        transform-origin: center;
+        transform: translateY(-50%) scaleY(0);
+        animation: grow-indicator 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+    @keyframes grow-indicator {
+        to {
+            transform: translateY(-50%) scaleY(1);
+        }
+    }
+    /* MODIFICATION END */
+    
+    .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+
+    /* MODIFICATION START: Added collapsible menu styles from SO_dashboard.html */
+    .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+    .collapsible-content {
+        padding: 5px 20px 15px 25px;
+        font-size: 14px;
+        color: var(--text-light);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        line-height: 1.6;
+    }
+    .collapsible-content h4 {
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-top: 10px;
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+    .collapsible-content ul { list-style: none; padding-left: 0; }
+    .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+    .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+    .collapsible-content a:hover { text-decoration: underline; }
+    .collapsible-content .contact-label {
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    /* MODIFICATION END */
+
+    /* MODIFICATION START: Updated user panel styles from reference file */
+    @keyframes slide-up-fade {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .user-panel {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg-light);
+        display: flex;
+        flex-direction: column;
+        z-index: 1100;
+        transform: translateX(100%);
+        transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+    }
+    .user-panel.active { transform: translateX(0); }
+    .user-panel.active .user-panel-header > * {
+        animation: slide-up-fade 0.5s 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        opacity: 0;
+    }
+    .user-panel.active .info-card, .user-panel.active .logout-btn {
+        animation: slide-up-fade 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        opacity: 0;
+    }
+    .user-panel.active .info-card:nth-of-type(1) { animation-delay: 0.3s; }
+    .user-panel.active .info-card:nth-of-type(2) { animation-delay: 0.4s; }
+    .user-panel.active .info-card:nth-of-type(3) { animation-delay: 0.5s; }
+    .user-panel.active .logout-btn { animation-delay: 0.6s; }
+    
+    .user-panel-header {
+        background: linear-gradient(135deg, var(--primary-blue), #6a7ff2);
+        color: var(--white);
+        padding: 40px 25px 30px;
+        text-align: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+    .close-user-panel-btn {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 36px;
+        height: 36px;
+        background-color: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .close-user-panel-btn:hover {
+        transform: scale(1.1) rotate(90deg);
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+    .close-user-panel-btn::before,
+    .close-user-panel-btn::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 2px;
+        background-color: var(--white);
+        border-radius: 1px;
+        transition: transform 0.3s ease;
+    }
+    .close-user-panel-btn::before { transform: rotate(45deg); }
+    .close-user-panel-btn::after { transform: rotate(-45deg); }
+    .user-avatar {
+        width: 85px; height: 85px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid var(--white);
+    }
+    .user-avatar i { font-size: 45px; color: var(--white); }
+    #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; }
+    #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400;}
+    .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+    .info-card {
+        background-color: var(--white);
+        padding: 18px;
+        border-radius: 16px;
+        margin: 0 auto 18px auto;
+        max-width: 480px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        border: 1px solid var(--border-color);
+    }
+    .info-card h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; }
+    .info-item:last-child { margin-bottom: 0; }
+    .info-item i {
+        font-size: 22px; color: var(--primary-blue); margin-top: 3px;
+        width: 24px; text-align: center;
+    }
+    .info-label {
+        font-size: 12px; color: var(--text-light);
+        letter-spacing: 0.5px; margin-bottom: 3px;
+    }
+    .info-value {
+        font-weight: 500; font-size: 15px; color: var(--text-dark);
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .logout-btn {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; width: 100%; padding: 14px; text-decoration: none;
+        background-color: var(--primary-red); color: var(--white); border-radius: 12px;
+        font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s;
+        max-width: 480px;
+    }
+    .logout-btn:hover { opacity: 0.85; }
+    /* MODIFICATION END */
+    
+    .main-content { padding: 20px 20px 80px 20px; flex-grow: 1; overflow-y: auto; }
+    .welcome-banner { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 25px 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: var(--shadow); }
+    .welcome-banner h1 { font-size: 22px; margin-bottom: 5px; }
+    .welcome-banner p { font-size: 14px; opacity: 0.9; }
+    .video-controls { margin-bottom: 25px; }
+    .search-bar-container { position: relative; display: flex; align-items: center; margin-bottom: 20px; }
+    .search-bar-container i.bx-search { position: absolute; left: 15px; font-size: 22px; color: var(--text-light); }
+    #video-search-input { width: 100%; height: 50px; border-radius: 25px; border: 1px solid var(--border-color); background-color: var(--bg-light); padding: 0 50px 0 50px; font-family: 'Poppins', sans-serif; font-size: 16px; transition: all 0.3s; }
+    #video-search-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px var(--primary-blue-light); }
+    #voice-search-btn { position: absolute; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; cursor: pointer; color: var(--primary-blue); font-size: 24px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
+    #voice-search-btn:hover { background-color: var(--primary-blue-light); }
+    #voice-search-btn.recording { color: var(--primary-red); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .category-filters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; -ms-overflow-style: none; scrollbar-width: none; }
+    .category-filters::-webkit-scrollbar { display: none; }
+    .filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); background: var(--white); border-radius: 20px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; white-space: nowrap; }
+    .filter-btn:hover { background: var(--primary-blue-light); border-color: var(--primary-blue); }
+    .filter-btn.active { background: var(--primary-blue); color: var(--white); border-color: var(--primary-blue); }
+    .filter-btn i { font-size: 20px; }
+    #video-list-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .video-card { cursor: pointer; background: var(--white); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .video-card.hidden { display: none; }
+    .video-card:hover { transform: translateY(-5px); box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
+    .thumbnail-container { position: relative; width: 100%; padding-top: 56.25%; background-color: var(--bg-light); }
+    .thumbnail-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+    .play-icon-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; opacity: 0; transition: opacity 0.3s; }
+    .video-card:hover .play-icon-overlay { opacity: 1; }
+    .video-card-info { padding: 15px; }
+    .video-card-title { font-size: 16px; font-weight: 600; color: var(--text-dark); }
+    .no-records-message { text-align: center; padding: 40px; color: var(--text-light); }
+    .no-records-message i { font-size: 48px; display: block; margin-bottom: 15px; color: var(--border-color); }
+    .hidden { display: none !important; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--white); z-index: 1200; transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); display: flex; flex-direction: column; }
+    .modal-overlay.active { transform: translateY(0); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; flex-shrink: 0; }
+    .modal-title { font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .close-modal-btn { font-size: 28px; cursor: pointer; color: var(--text-dark); }
+    .modal-body { padding: 0; overflow-y: auto; flex-grow: 1; }
+    #video-player-container { width: 100%; background: #000; position: relative; }
+    #video-player-container video { width: 100%; display: block; max-height: 50vh; }
+    .video-info-section { padding: 20px; }
+    .video-info-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .video-info-description { color: var(--text-light); line-height: 1.7; }
+    .app-footer { 
+        display: flex; 
+        justify-content: space-around; 
+        padding: 10px 0; 
+        background-color: var(--white); 
+        border-top: 1px solid var(--border-color); 
+        position: fixed;
+        bottom: 0; 
+        left: 0;
+        right: 0;
+        z-index: 50; 
+    }
+    
+    .footer-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-light); text-decoration: none; font-size: 12px; width: 80px; padding: 5px 0; }
+    .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+    .footer-btn.active { color: var(--primary-blue); }
+</style>
+
+</head>
+<body>
+<div class="app-container" id="app-container">
+    <div class="overlay" id="overlay"></div>
+    <!-- MODIFICATION START: Updated side menu HTML from SO_dashboard.html -->
+    <nav class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+            <span class="menu-brand-name">MEIL</span>
+        </div>
+        <ul class="menu-list">
+            <li><a href="{{ url_for('employee_dashboard') }}" class="active"><i class='bx bxs-home'></i> Home</a></li>
+            <li><a href="{{ url_for('track_reports') }}"><i class='bx bx-line-chart'></i> Track Reports</a></li>
+            <li><a href="{{ url_for('attendance') }}"><i class='bx bx-calendar-check'></i> Attendance</a></li>
+            <li>
+                <div class="collapsible-header" data-target="about-content">
+                    <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+                </div>
+                <div class="collapsible-content" id="about-content">
+                    <h4>Our Mission</h4>
+                    <p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                    <h4>Core Values</h4>
+                    <ul>
+                        <li><i class='bx bx-shield-quarter'></i> Safety First</li>
+                        <li><i class='bx bx-bulb'></i> Proactive Reporting</li>
+                    </ul>
+                </div>
+            </li>
+             <li>
+                <div class="collapsible-header" data-target="contact-content">
+                    <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+                </div>
+                <div class="collapsible-content" id="contact-content">
+                     <h4>Support Channels</h4>
+                     <ul>
+                        <li>
+                            <i class='bx bx-support'></i>
+                            <div>
+                                <div class="contact-label">General Helpdesk</div>
+                                <a href="mailto:safety.support@meil.com">safety.support@meil.com</a>
+                            </div>
+                        </li>
+                        <li>
+                            <i class='bx bx-error'></i>
+                            <div>
+                                <div class="contact-label">Technical Issues</div>
+                                <a href="mailto:tech.support@meil.com">tech.support@meil.com</a>
+                            </div>
+                        </li>
+                     </ul>
+                </div>
+            </li>
+        </ul>
+    </nav>
+    <!-- MODIFICATION END -->
+    <aside class="user-panel" id="user-panel">
+        <div class="user-panel-header">
+            <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close User Panel"></button>
+            <div class="user-avatar"><i class='bx bxs-user'></i></div>
+            <h3 id="user-panel-name">Loading...</h3>
+            <p id="user-panel-email">Loading...</p>
+        </div>
+        <div class="user-panel-body">
+            <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+            <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+            <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+            <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+        </div>
+    </aside>
+    <header class="app-header">
+        <i class='bx bx-menu header-icon' id="menu-btn"></i>
+        <h2 class="header-title">Dashboard</h2>
+        <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+    </header>
+    <main class="main-content">
+        <section class="welcome-banner">
+            <h1 id="welcome-name">Welcome, ...</h1>
+            <p>Explore your safety training modules below.</p>
+        </section>
+        <div class="video-controls">
+            <div class="search-bar-container">
+                <i class='bx bx-search'></i>
+                <input type="text" id="video-search-input" placeholder="Search training videos...">
+                <button id="voice-search-btn" title="Search with voice"><i class='bx bxs-microphone'></i></button>
+            </div>
+            <div class="category-filters" id="category-filters">
+                <button class="filter-btn active" data-category="all"><i class='bx bxs-grid-alt'></i> All</button>
+                <button class="filter-btn" data-category="construction"><i class='bx bxs-hard-hat'></i> Construction</button>
+                <button class="filter-btn" data-category="electrical"><i class='bx bxs-plug'></i> Electrical</button>
+                <button class="filter-btn" data-category="machinery"><i class='bx bxs-cog'></i> Machinery</button>
+                <button class="filter-btn" data-category="first-aid"><i class='bx bxs-first-aid'></i> First Aid</button>
+            </div>
+        </div>
+        <div id="video-list-container">
+            {% for video in videos %}
+            <div class="video-card" data-video-id="{{ video.id }}" data-video-src="{{ url_for('static', filename=video.video_path) }}" data-title="{{ video.title }}" data-description="{{ video.description }}" data-category="{{ video.category|default('all', true) }}">
+                <div class="thumbnail-container">
+                    <img src="{{ url_for('static', filename=video.thumbnail_path) }}" alt="{{ video.title }} Thumbnail">
+                    <div class="play-icon-overlay"><i class='bx bx-play-circle'></i></div>
+                </div>
+                <div class="video-card-info"><h3 class="video-card-title">{{ video.title }}</h3></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="no-records-message {% if videos %}hidden{% endif %}" id="no-videos-message">
+            <i class='bx bx-video-off'></i><h3>No Videos Available</h3><p>Check back later for new training content.</p>
+        </div>
+    </main>
+    <footer class="app-footer">
+        <a href="{{ url_for('employee_dashboard') }}" class="footer-btn active">
+            <i class='bx bxs-home'></i>
+            <span>Home</span>
+        </a>
+        <a href="{{ url_for('training') }}" class="footer-btn">
+            <i class='bx bxs-error-alt'></i>
+            <span>Training</span>
+        </a>
+    </footer>
+</div>
+<div class="modal-overlay" id="video-player-overlay">
+    <div class="modal-header">
+        <h3 class="modal-title" id="player-title"></h3>
+        <i class='bx bx-x close-modal-btn' id="close-player-btn"></i>
+    </div>
+    <div class="modal-body">
+        <div id="video-player-container"><video id="main-video-player" controls controlsList="nodownload" oncontextmenu="return false;"></video></div>
+        <div class="video-info-section">
+            <h2 class="video-info-title" id="player-info-title"></h2>
+            <p class="video-info-description" id="player-info-description"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Core Navigation & Panels ---
+    const appContainer = document.getElementById('app-container');
+    const menuBtn = document.getElementById('menu-btn');
+    const userBtn = document.getElementById('user-btn');
+    const sideMenu = document.getElementById('side-menu');
+    const userPanel = document.getElementById('user-panel');
+    const overlay = document.getElementById('overlay');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+    // MODIFICATION START: Added collapsible menu JS from SO_dashboard.html
+    const collapsibles = document.querySelectorAll('.collapsible-header');
+
+    const toggleSideMenu = () => {
+        overlay.classList.toggle('active');
+        sideMenu.classList.toggle('active');
+        appContainer.classList.toggle('panel-open');
+    };
+    menuBtn.addEventListener('click', toggleSideMenu);
+    userBtn.addEventListener('click', () => userPanel.classList.add('active'));
+    closeUserPanelBtn.addEventListener('click', () => userPanel.classList.remove('active'));
+    overlay.addEventListener('click', () => { if (sideMenu.classList.contains('active')) toggleSideMenu(); });
+
+    collapsibles.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = document.getElementById(header.dataset.target);
+            const arrow = header.querySelector('.arrow');
+            if(content.style.maxHeight) {
+                content.style.maxHeight = null;
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+    // MODIFICATION END
+    
+    // --- User Info Loading ---
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            
+            document.getElementById('welcome-name').textContent = `Welcome, ${data.name || 'User'}`;
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+        } catch (error) { console.error("Error loading user info:", error); }
+    };
+
+    // --- Video Player Logic ---
+    const playerOverlay = document.getElementById('video-player-overlay');
+    const videoListContainer = document.getElementById('video-list-container');
+    const mainPlayer = document.getElementById('main-video-player');
+    const closePlayerBtn = document.getElementById('close-player-btn');
+    
+    videoListContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.video-card');
+        if (card) {
+            mainPlayer.src = card.dataset.videoSrc;
+            document.getElementById('player-title').textContent = card.dataset.title;
+            document.getElementById('player-info-title').textContent = card.dataset.title;
+            document.getElementById('player-info-description').textContent = card.dataset.description;
+            playerOverlay.classList.add('active');
+            mainPlayer.play();
+        }
+    });
+
+    closePlayerBtn.addEventListener('click', () => {
+        playerOverlay.classList.remove('active');
+        mainPlayer.pause();
+        mainPlayer.src = "";
+    });
+
+    // --- Video Filtering & Search Logic ---
+    const searchInput = document.getElementById('video-search-input');
+    const categoryFilters = document.getElementById('category-filters');
+    const allVideoCards = videoListContainer.querySelectorAll('.video-card');
+    const noVideosMessage = document.getElementById('no-videos-message');
+
+    const filterAndSearchVideos = () => {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const activeCategory = categoryFilters.querySelector('.filter-btn.active').dataset.category;
+        let visibleCount = 0;
+
+        allVideoCards.forEach(card => {
+            const title = card.dataset.title.toLowerCase();
+            const category = card.dataset.category;
+
+            const categoryMatch = (activeCategory === 'all' || category === activeCategory);
+            const searchMatch = (!searchTerm || title.includes(searchTerm));
+
+            if (categoryMatch && searchMatch) {
+                card.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+        
+        noVideosMessage.classList.toggle('hidden', visibleCount > 0);
+    };
+
+    searchInput.addEventListener('input', filterAndSearchVideos);
+
+    categoryFilters.addEventListener('click', (e) => {
+        const filterBtn = e.target.closest('.filter-btn');
+        if (filterBtn) {
+            categoryFilters.querySelector('.active').classList.remove('active');
+            filterBtn.classList.add('active');
+            filterAndSearchVideos();
+        }
+    });
+    
+    // --- Voice Search Logic ---
+    const voiceSearchBtn = document.getElementById('voice-search-btn');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        voiceSearchBtn.addEventListener('click', () => {
+             recognition.start();
+        });
+
+        recognition.onstart = () => voiceSearchBtn.classList.add('recording');
+        recognition.onend = () => voiceSearchBtn.classList.remove('recording');
+        recognition.onerror = (event) => console.error("Speech Recognition Error:", event.error);
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            searchInput.value = transcript;
+            filterAndSearchVideos();
+        };
+    } else {
+        voiceSearchBtn.style.display = 'none'; // Hide if not supported
+    }
+
+    // --- Initial Load ---
+    loadUserInfo();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Attendance | MEIL</title>
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+    <!-- Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* CSS RESET & DEFAULTS */
+        :root {
+            --primary-blue: #5a67f2;
+            --primary-blue-light: #eaefff;
+            --primary-red: #ef5350;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #f8f9fa;
+            --border-color: #e0e0e0;
+            --white: #ffffff;
+            --success: #2ecc71;
+            --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); /* overflow removed for scrollability */ }
+        
+        /* UNIFIED APP SHELL STYLES */
+        .app-container { width: 100%; margin: 0 auto; background-color: var(--white); min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+        .app-container.panel-open > .app-header, .app-container.panel-open > .main-content, .app-container.panel-open > .app-footer { filter: blur(4px); transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; user-select: none; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+        .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+        .header-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+        .side-menu { position: fixed; top: 0; left: 0; height: 100%; background-color: var(--white); box-shadow: var(--shadow); transform: translateX(-110%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1000; width: 280px; }
+        .side-menu.active { transform: translateX(0); }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0s 0.4s; z-index: 999; }
+        .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+        .menu-header { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        .menu-logo { height: 40px; }
+        .menu-brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-dark); }
+        .menu-list { list-style: none; padding: 10px 0; }
+        .menu-list li a, .menu-list .collapsible-header { display: flex; align-items: center; padding: 15px 20px; color: var(--text-dark); text-decoration: none; font-weight: 500; transition: background-color 0.2s, color 0.2s, font-weight 0.2s; cursor: pointer; position: relative; }
+        .menu-list li a:hover, .menu-list .collapsible-header:hover { background-color: var(--bg-light); }
+        .menu-list li a.active { background-color: var(--primary-blue-light); color: var(--primary-blue); font-weight: 600; }
+        .menu-list li a.active::before { content: ''; position: absolute; left: 0; top: 50%; height: 28px; width: 5px; background-color: var(--primary-blue); border-radius: 0 4px 4px 0; transform-origin: center; transform: translateY(-50%) scaleY(0); animation: grow-indicator 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        @keyframes grow-indicator { to { transform: translateY(-50%) scaleY(1); } }
+        .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+        .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+        .collapsible-content { padding: 5px 20px 15px 25px; font-size: 14px; color: var(--text-light); max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; line-height: 1.6; }
+        .collapsible-content h4 { font-weight: 600; color: var(--primary-blue); margin-top: 10px; margin-bottom: 8px; font-size: 15px; }
+        .collapsible-content ul { list-style: none; padding-left: 0; }
+        .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+        .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+        .collapsible-content a:hover { text-decoration: underline; }
+        .collapsible-content .contact-label { font-weight: 600; color: var(--text-dark); }
+        
+        .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+        .user-panel.active { transform: translateX(0); }
+        .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+        .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease, background-color 0.3s ease; }
+        .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); background-color: rgba(255, 255, 255, 0.25); }
+        .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); border-radius: 1px; }
+        .close-user-panel-btn::before { transform: rotate(45deg); } .close-user-panel-btn::after { transform: rotate(-45deg); }
+        .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+        .user-avatar i { font-size: 45px; color: var(--white); } #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; } #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400; }
+        .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+        .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin: 0 auto 18px auto; max-width: 480px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color); }
+        .info-card h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+        .user-panel .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; } .user-panel .info-item:last-child { margin-bottom: 0; }
+        .user-panel .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; width: 24px; text-align: center; } .user-panel .info-label { font-size: 12px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 3px; }
+        .user-panel .info-value { font-weight: 500; font-size: 15px; color: var(--text-dark); overflow-wrap: break-word; word-break: break-word; }
+        .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s; max-width: 480px; } .logout-btn:hover { opacity: 0.85; }
+        .app-footer { display: flex; justify-content: space-around; padding: 10px 0; background-color: var(--white); border-top: 1px solid var(--border-color); position: sticky; bottom: 0; z-index: 50; flex-shrink: 0; }
+        .footer-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-light); text-decoration: none; font-size: 12px; width: 80px; }
+        .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+        .footer-btn.active { color: var(--primary-blue); }
+
+        /* --- PAGE-SPECIFIC STYLES --- */
+        .main-content { padding: 20px; flex-grow: 1; overflow-y: auto; }
+        .page-header { margin-bottom: 25px; }
+        .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .page-header p { font-size: 16px; color: var(--text-light); }
+        .content-card { background: var(--white); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 25px; }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; color: var(--text-dark); }
+        
+        /* Capture & Analysis Section */
+        #attendance-form > .content-card:first-of-type {
+            background: linear-gradient(145deg, var(--white) 0%, #f7f8ff 100%);
+            border-color: #d8e0ff;
+        }
+
+        #cameraInput { display: none; }
+        .capture-btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none; /* Removed dashed border for a solid look */
+            background-color: var(--primary-blue); /* Changed to primary button color */
+            color: var(--white); /* Changed text color for contrast */
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.2s; /* Switched to opacity transition */
+            font-size: 16px;
+            gap: 10px;
+        }
+        .capture-btn:hover {
+            opacity: 0.85; /* Changed hover effect */
+        }
+        .image-preview { margin-top: 20px; text-align: center; }
+        .image-preview img { max-width: 100%; max-height: 300px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .auto-data-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        label { font-size: 12px; font-weight: 500; color: var(--text-light); margin-bottom: 5px; display: block; }
+        input[readonly] { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-light); }
+
+        /* Action Buttons & Loader (from SO_dashboard) */
+        .action-button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; }
+        .action-button:disabled { background-color: var(--text-light); cursor: not-allowed; }
+        .ai-analyze-btn { background: var(--primary-blue); color: var(--white); } /* MODIFIED: Matched primary button style */
+        .submit-btn { background: var(--primary-blue); color: var(--white); }
+        .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* AI Results Section */
+        #ai-results-container { margin-top: 20px; padding: 15px; border-radius: 12px; background: var(--primary-blue-light); border: 1px solid #c4cefb; display: none; }
+        .results-summary { font-weight: 600; margin-bottom: 15px; text-align: center; font-size: 16px; }
+        .results-table { width: 100%; border-collapse: collapse; }
+        .results-table th, .results-table td { padding: 8px; text-align: left; border-bottom: 1px solid #c4cefb; }
+        .results-table th { font-size: 12px; text-transform: uppercase; color: var(--text-light); }
+        .results-table tr:last-child td { border: none; }
+
+        /* Past Records Section */
+        .record-card { border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 15px; overflow: hidden; }
+        .record-card img { width: 100%; height: 150px; object-fit: cover; }
+        .record-info { padding: 15px; }
+        .record-info-line { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+        .record-info-line i { color: var(--primary-blue); font-size: 18px; }
+
+        /* Success Overlay */
+        .success-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.95); display: flex; align-items: center; justify-content: center; z-index: 2000; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0s 0.4s; }
+        .success-overlay.visible { opacity: 1; visibility: visible; transition: opacity 0.4s ease, visibility 0s; }
+        .success-animation-content { text-align: center; transform: scale(0.8); opacity: 0; animation: pop-in 0.5s 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes pop-in { to { transform: scale(1); opacity: 1; } }
+        .checkmark-circle { width: 80px; height: 80px; border-radius: 50%; display: inline-block; background: var(--success); position: relative; box-shadow: 0 5px 20px rgba(46, 204, 113, 0.3); }
+        .checkmark-circle:after { content: ''; display: block; width: 15px; height: 35px; border: solid white; border-width: 0 5px 5px 0; transform: rotate(45deg); position: absolute; left: 30px; top: 15px; opacity: 0; animation: draw 0.5s 0.2s ease-out forwards; }
+        .success-text { margin-top: 20px; font-weight: 600; font-size: 20px; color: var(--text-dark); }
+        @keyframes draw { 0% { opacity: 0; transform: rotate(45deg) scale(0.5); } 100% { opacity: 1; transform: rotate(45deg) scale(1); } }
+        
+        .no-records-message { text-align: center; padding: 40px; color: var(--text-light); }
+        .no-records-message i { font-size: 48px; display: block; margin-bottom: 15px; color: var(--border-color); }
+    </style>
+</head>
+<body>
+    <div class="app-container" id="app-container">
+        <!-- Overlay for menu -->
+        <div class="overlay" id="overlay"></div>
+        
+        <nav class="side-menu" id="side-menu">
+            <div class="menu-header">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+                <span class="menu-brand-name">MEIL</span>
+            </div>
+            <ul class="menu-list">
+                <li><a href="{{ url_for('SO_dashboard') }}"><i class='bx bxs-home'></i> Home</a></li>
+                <li><a href="{{ url_for('track_reports') }}"><i class='bx bx-line-chart'></i> Track Reports</a></li>
+                <li><a href="{{ url_for('attendance') }}" class="active"><i class='bx bx-calendar-check'></i> Attendance</a></li>
+                <li>
+                    <div class="collapsible-header" data-target="about-content">
+                        <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="about-content">
+                        <h4>Our Mission</h4>
+                        <p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                        <h4>Core Values</h4>
+                        <ul><li><i class='bx bx-shield-quarter'></i> Safety First</li><li><i class='bx bx-bulb'></i> Proactive Reporting</li></ul>
+                    </div>
+                </li>
+                 <li>
+                    <div class="collapsible-header" data-target="contact-content">
+                        <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+                    </div>
+                    <div class="collapsible-content" id="contact-content">
+                         <h4>Support Channels</h4>
+                         <ul><li><i class='bx bx-support'></i><div><div class="contact-label">General Helpdesk</div><a href="mailto:safety.support@meil.com">safety.support@meil.com</a></div></li><li><i class='bx bx-error'></i><div><div class="contact-label">Technical Issues</div><a href="mailto:tech.support@meil.com">tech.support@meil.com</a></div></li></ul>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        
+        <aside class="user-panel" id="user-panel">
+            <div class="user-panel-header">
+                <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close user menu"></button>
+                <div class="user-avatar"><i class='bx bxs-user'></i></div>
+                <h3 id="user-panel-name">Loading...</h3><p id="user-panel-email">Loading...</p>
+            </div>
+            <div class="user-panel-body">
+                <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+                <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+                <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+            </div>
+        </aside>
+
+        <header class="app-header">
+            <i class='bx bx-menu header-icon' id="menu-btn"></i>
+            <h2 class="header-title">AI Attendance</h2>
+            <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+        </header>
+
+        <main class="main-content">
+            <div class="page-header">
+
+
+            <form id="attendance-form">
+                <div class="content-card">
+                    <h3 class="card-title"><i class='bx bx-camera'></i>Capture Team Photo</h3>
+                    <label for="cameraInput" class="capture-btn">
+                        <i class='bx bxs-camera'></i>
+                        <span>Take Photo</span>
+                    </label>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+                    <div class="image-preview" id="image-preview" style="display: none;">
+                        <img id="preview-img" src="" alt="Team Photo Preview">
+                    </div>
+                    <button type="button" class="action-button ai-analyze-btn" id="analyze-btn" disabled>
+                        <i class='bx bxs-magic-wand'></i>
+                        <span>Analyze with AI</span>
+                    </button>
+                </div>
+                
+                <div class="content-card" id="analysis-results" style="display:none;">
+                     <h3 class="card-title"><i class='bx bxs-group'></i>Analysis & Verification</h3>
+                     <div class="auto-data-group">
+                        <div><label>Date</label><input type="text" id="date" readonly></div>
+                        <div><label>Time</label><input type="text" id="time" readonly></div>
+                     </div>
+                     <div style="margin-top: 15px;"><label>Location</label><input type="text" id="location" readonly></div>
+                    
+                     <div id="ai-results-container"></div>
+                     <button type="submit" class="action-button submit-btn" id="submit-btn">
+                        Submit Attendance
+                     </button>
+                </div>
+            </form>
+
+            <div class="page-header" style="margin-top: 40px;">
+                <h1>Past Attendance Records</h1>
+                <p>Review previously submitted attendance.</p>
+            </div>
+            
+            <div id="past-records-container">
+                {% for record in records %}
+                <div class="record-card">
+                    <img src="{{ record.image_path }}" alt="Attendance Photo">
+                    <div class="record-info">
+                         <div class="record-info-line">
+                            <i class='bx bxs-calendar'></i>
+                            <span>{{ record.timestamp }}</span>
+                        </div>
+                        <div class="record-info-line">
+                            <i class='bx bxs-map'></i>
+                            <span>{{ record.location }}</span>
+                        </div>
+                         <div class="record-info-line">
+                            <i class='bx bxs-group'></i>
+                            <strong>{{ record.present_count }} people present</strong>
+                        </div>
+                        <div class="record-info-line">
+                            <i class='bx bxs-user-check'></i>
+                            <span>Submitted by: {{ record.submitted_by }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                 <div class="no-records-message">
+                    <i class='bx bx-calendar-x'></i>
+                    <h3>No Past Records</h3>
+                    <p>Submit a new attendance record and it will appear here.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+        
+        <footer class="app-footer">
+            <a href="{{ url_for('SO_dashboard') }}" class="footer-btn">
+                <i class='bx bxs-home'></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('notices') }}" class="footer-btn">
+                <i class='bx bxs-bell'></i>
+                <span>Notices</span>
+            </a>
+        </footer>
+    </div>
+    
+    <div class="success-overlay" id="success-overlay">
+        <div class="success-animation-content">
+            <div class="checkmark-circle"></div>
+            <p class="success-text">Attendance Submitted!</p>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- UNIFIED SCRIPT FOR LAYOUT ---
+        const appContainer = document.getElementById('app-container');
+        const menuBtn = document.getElementById('menu-btn');
+        const userBtn = document.getElementById('user-btn');
+        const sideMenu = document.getElementById('side-menu');
+        const userPanel = document.getElementById('user-panel');
+        const overlay = document.getElementById('overlay');
+        const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+        const collapsibles = document.querySelectorAll('.collapsible-header');
+        const toggleSideMenu = () => { overlay.classList.toggle('active'); sideMenu.classList.toggle('active'); appContainer.classList.toggle('panel-open'); };
+        menuBtn.addEventListener('click', toggleSideMenu);
+        overlay.addEventListener('click', () => { if (sideMenu.classList.contains('active')) toggleSideMenu(); });
+        userBtn.addEventListener('click', () => userPanel.classList.add('active'));
+        closeUserPanelBtn.addEventListener('click', () => userPanel.classList.remove('active'));
+        collapsibles.forEach(header => { header.addEventListener('click', () => { const content = document.getElementById(header.dataset.target); const arrow = header.querySelector('.arrow'); if(content.style.maxHeight){ content.style.maxHeight = null; arrow.style.transform = 'rotate(0deg)'; } else { collapsibles.forEach(h => { if (h !== header) { document.getElementById(h.dataset.target).style.maxHeight = null; h.querySelector('.arrow').style.transform = 'rotate(0deg)'; }}); content.style.maxHeight = content.scrollHeight + 'px'; arrow.style.transform = 'rotate(180deg)'; }}); });
+
+        // --- SCRIPT FOR AI ATTENDANCE PAGE ---
+        const cameraInput = document.getElementById('cameraInput');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const form = document.getElementById('attendance-form');
+        const aiResultsContainer = document.getElementById('ai-results-container');
+        const analysisResultsCard = document.getElementById('analysis-results');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        let capturedFile = null;
+        let attendanceData = null;
+
+        const setAutoData = () => {
+            const now = new Date();
+            document.getElementById('date').value = now.toLocaleDateString('en-CA');
+            document.getElementById('time').value = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    document.getElementById('location').value = `Lat: ${pos.coords.latitude.toFixed(5)}, Lon: ${pos.coords.longitude.toFixed(5)}`;
+                }, err => {
+                    document.getElementById('location').value = 'Location access denied.';
+                }, { enableHighAccuracy: true });
+            } else { document.getElementById('location').value = "Geolocation not supported."; }
+        };
+
+        cameraInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) {
+                capturedFile = file;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewImg.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                    analyzeBtn.disabled = false;
+                    analysisResultsCard.style.display = 'none'; // Hide results if new image is taken
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        const setButtonLoading = (btn, isLoading, originalText) => {
+            btn.disabled = isLoading;
+            if (isLoading) {
+                btn.innerHTML = `<span class="loader"></span> ${originalText}...`;
+            } else {
+                btn.innerHTML = btn.querySelector('span').parentElement.innerHTML; // Hacky way to restore icon + text
+                // A better way would be storing the original HTML content
+                if(btn.id === "analyze-btn") btn.innerHTML = `<i class='bx bxs-magic-wand'></i> <span>Analyze with AI</span>`;
+                if(btn.id === "submit-btn") btn.innerHTML = 'Submit Attendance';
+            }
+        };
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!capturedFile) return;
+            setButtonLoading(analyzeBtn, true, 'Analyzing');
+            
+            const formData = new FormData();
+            formData.append('image', capturedFile);
+            
+            try {
+                const response = await fetch("{{ url_for('analyze_attendance') }}", { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'AI Analysis failed.');
+                }
+                
+                attendanceData = result; // Store for submission
+                aiResultsContainer.innerHTML = `
+                    <p class="results-summary">Found <strong>${result.count}</strong> person(s) in the photo.</p>
+                    <table class="results-table">
+                        <thead><tr><th>Name</th><th>User ID</th></tr></thead>
+                        <tbody>
+                            ${result.attendees.map(p => `<tr><td>${p.name}</td><td>${p.id}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+                setAutoData();
+                aiResultsContainer.style.display = 'block';
+                analysisResultsCard.style.display = 'block';
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error('Analysis Error:', error);
+            } finally {
+                setButtonLoading(analyzeBtn, false, 'Analyzing');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!attendanceData) {
+                alert('Please analyze an image first.');
+                return;
+            }
+            setButtonLoading(submitBtn, true, 'Submitting');
+
+            const finalData = {
+                timestamp: `${document.getElementById('date').value} ${document.getElementById('time').value}`,
+                location: document.getElementById('location').value,
+                image_path: attendanceData.image_path,
+                count: attendanceData.count,
+                attendees: attendanceData.attendees,
+            };
+
+            try {
+                const response = await fetch("{{ url_for('submit_attendance') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(finalData)
+                });
+                if (!response.ok) throw new Error('Network response was not ok');
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'Submission failed');
+
+                document.getElementById('success-overlay').classList.add('visible');
+                setTimeout(() => window.location.reload(), 2500);
+
+            } catch(error) {
+                alert(`Submission Error: ${error.message}`);
+                console.error('Submission Error:', error);
+                setButtonLoading(submitBtn, false, 'Submitting');
+            }
+        });
+    
+        const loadUserInfo = async () => {
+            try {
+                const response = await fetch("{{ url_for('get_user_info') }}");
+                if (!response.ok) throw new Error('Failed to fetch user info');
+                const data = await response.json();
+                document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+                document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+                document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+                document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+                document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+                document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+                document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+            } catch (error) { 
+                console.error("Error loading user info:", error);
+                document.getElementById('user-panel-name').textContent = 'Error Loading Data';
+            }
+        };
+        loadUserInfo();
+    });
+    </script>
+</body>
+</html>

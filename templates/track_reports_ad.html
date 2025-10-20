@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Reports | SafetyAI</title>
+
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+<!-- Fonts and Icons -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+    /* CSS RESET & DEFAULTS - THEME CONSISTENT WITH DASHBOARD */
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+        
+        /* Priority Colors */
+        --priority-critical: #ef5350;
+        --priority-high: #ff9800;
+        --priority-medium: #ffca28;
+        --priority-low: #2ecc71;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    /* --- UNIFIED APP SHELL STYLES (from dashboard) --- */
+    .app-container {
+        width: 100%;
+        margin: 0 auto;
+        background-color: var(--white);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .app-container.panel-open > .app-header,
+    .app-container.panel-open > .main-content {
+        filter: blur(4px);
+        transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    /* Header */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: var(--white);
+        border-bottom: 1px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+    }
+
+    .header-icon {
+        font-size: 28px;
+        color: var(--text-dark);
+        cursor: pointer;
+        width: 40px; 
+        text-align: center;
+    }
+    .header-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    /* MODIFICATION: Added Back Button styles from notices page */
+    .back-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background-color: var(--primary-blue-light); box-shadow: 0 4px 15px rgba(90, 103, 242, 0.2); text-decoration: none; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); outline: none; }
+    .back-btn i { font-size: 28px; color: var(--primary-blue); transition: transform 0.3s ease; }
+    .back-btn:hover, .back-btn:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(90, 103, 242, 0.35); }
+    .back-btn:active { transform: translateY(0px) scale(0.95); box-shadow: 0 2px 8px rgba(90, 103, 242, 0.18); }
+    
+    /* UNIFIED USER PANEL (No Changes) */
+    @keyframes slide-up-fade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+    .user-panel.active { transform: translateX(0); }
+    .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+    .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease, background-color 0.3s ease; }
+    .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); background-color: rgba(255, 255, 255, 0.25); }
+    .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); border-radius: 1px; }
+    .close-user-panel-btn::before { transform: rotate(45deg); } .close-user-panel-btn::after { transform: rotate(-45deg); }
+    .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+    .user-avatar i { font-size: 45px; color: var(--white); } #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; } #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400; }
+    .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+    .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin: 0 auto 18px auto; max-width: 480px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color); }
+    .info-card h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+    .user-panel .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; } .user-panel .info-item:last-child { margin-bottom: 0; }
+    .user-panel .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; width: 24px; text-align: center; } .user-panel .info-label { font-size: 12px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 3px; }
+    .user-panel .info-value { font-weight: 500; font-size: 15px; color: var(--text-dark); overflow-wrap: break-word; word-break: break-word; }
+    .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s; max-width: 480px; } .logout-btn:hover { opacity: 0.85; }
+
+    /* --- PAGE-SPECIFIC STYLES --- */
+    .main-content {
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .page-header { margin-bottom: 20px; flex-shrink: 0; }
+    .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .page-header p { font-size: 16px; color: var(--text-light); }
+    
+    .search-bar { margin-bottom: 20px; }
+    #search-input { width: 100%; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border-color); background-color: var(--white); font-family: 'Poppins', sans-serif; font-size: 15px; }
+    #search-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px var(--primary-blue-light); }
+    
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: var(--bg-light); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px; }
+    .filter-item label { font-size: 12px; font-weight: 500; color: var(--text-light); margin-bottom: 5px; display: block; }
+    .filter-item select, .filter-item input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 14px; background-color: var(--white); }
+
+    .reports-list {
+        list-style: none;
+        flex-grow: 1;
+        margin: 0 -5px;
+        padding: 0 5px;
+    }
+
+    .report-card { background: var(--white); border: 1px solid var(--border-color); border-radius: 16px; margin-bottom: 20px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); animation: slide-up-fade 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; display: flex; flex-direction: column; }
+    .report-card.hidden { display: none; }
+    
+    .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-light); }
+    .card-header .report-id { font-weight: 600; color: var(--text-dark); }
+    .card-header .report-timestamp { display: flex; align-items: center; gap: 6px; }
+
+    .card-body { padding: 20px; display: grid; gap: 18px; }
+    .info-line { display: flex; align-items: flex-start; gap: 15px; }
+    .info-line i { font-size: 20px; color: var(--primary-blue); margin-top: 2px; width: 22px; text-align: center; }
+    .info-line-content .label { font-size: 12px; color: var(--text-light); margin-bottom: 2px; }
+    .info-line-content .value { font-weight: 500; word-break: break-word; }
+    .value.subjects-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .value.subjects-list span { background-color: var(--primary-blue-light); color: var(--primary-blue); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+
+    .image-gallery { padding: 0 20px 20px; }
+    .image-gallery h4 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text-dark); }
+    .image-thumbnails { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
+    .thumbnail { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid var(--border-color); transition: transform .2s, border-color .2s; }
+    .thumbnail:hover { transform: scale(1.05); border-color: var(--primary-blue); }
+
+    .card-details-section { padding: 20px; border-top: 1px solid var(--border-color); background-color: var(--bg-light); }
+    .details-box { background: var(--white); border-radius: 8px; border: 1px solid var(--border-color); padding: 15px; font-size: 14px; line-height: 1.6; }
+    .details-box h5 { font-weight: 600; color: var(--primary-blue); margin-bottom: 8px; display:flex; align-items:center; gap:8px;}
+    .details-box p { white-space: pre-wrap; word-wrap: break-word; }
+    .details-box:first-child { margin-bottom: 15px; }
+    
+    .card-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; }
+    .priority-badge { font-weight: 600; padding: 6px 15px; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: var(--white); min-width: 100px; justify-content: center; }
+    .priority-Critical { background-color: var(--priority-critical); }
+    .priority-High { background-color: var(--priority-high); }
+    .priority-Medium { background-color: var(--priority-medium); color: var(--text-dark); }
+    .priority-Low { background-color: var(--priority-low); }
+
+    .edit-btn { background-color: var(--primary-blue); color: var(--white); border: none; border-radius: 8px; padding: 8px 18px; font-weight: 500; cursor: pointer; transition: opacity .2s; display: flex; align-items: center; gap: 8px; }
+    .edit-btn:hover { opacity: 0.85; }
+
+    .no-reports-message { text-align: center; padding: 40px; color: var(--text-light); } .no-reports-message i { font-size: 48px; display: block; margin-bottom: 15px; color: var(--border-color); }
+    .no-reports-message h3 { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+    
+    /* MODAL STYLES */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1200; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity .3s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { background: var(--white); border-radius: 16px; width: 95%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; transform: scale(0.9); transition: transform .3s; }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+    .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+    .modal-header h2 { font-size: 18px; font-weight: 600; }
+    .modal-close-btn { font-size: 28px; cursor: pointer; color: var(--text-light); background: none; border: none; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .modal-body .input-group { margin-bottom: 15px; }
+    .modal-body label { font-size: 14px; font-weight: 500; color: var(--text-light); margin-bottom: 8px; display: block; }
+    .modal-body input, .modal-body select, .modal-body textarea { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-light); font-family: 'Poppins', sans-serif; font-size: 15px; }
+    .modal-body textarea { resize: vertical; }
+    .modal-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+    .update-btn { width: 100%; padding: 14px; background-color: var(--primary-blue); color: var(--white); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+    .update-btn:hover { opacity: 0.85; }
+
+    /* IMAGE LIGHTBOX */
+    #image-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity .3s; backdrop-filter: blur(5px); }
+    #image-lightbox.active { opacity: 1; visibility: visible; }
+    #image-lightbox img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: scale(0.8); transition: transform .3s; }
+    #image-lightbox.active img { transform: scale(1); }
+</style>
+</head>
+<body>
+    <div class="app-container" id="app-container">
+
+<!-- UNIFIED User Panel -->
+<aside class="user-panel" id="user-panel">
+    <div class="user-panel-header">
+        <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close User Panel"></button>
+        <div class="user-avatar"><i class='bx bxs-user'></i></div>
+        <h3 id="user-panel-name">Loading...</h3>
+        <p id="user-panel-email">Loading...</p>
+    </div>
+    <div class="user-panel-body">
+        <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+        <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+        <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+        <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+    </div>
+</aside>
+
+<!-- UNIFIED App Header -->
+<header class="app-header">
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn" aria-label="Go Back"><i class='bx bx-arrow-back'></i></a>
+    <h2 class="header-title">Reports</h2>
+    <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+</header>
+
+<!-- REDESIGNED Main Content -->
+<main class="main-content">
+    <div class="page-header">
+        <h1></h1>
+        <p></p>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search by keyword, ID, location...">
+    </div>
+
+    <div class="filter-grid">
+        <div class="filter-item">
+            <label for="filter-project">Filter by Project</label>
+            <select id="filter-project">
+                <option value="">All Projects</option>
+                {% for p in projects %}
+                <option value="{{ p.name }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-item">
+            <label for="filter-priority">Filter by Priority</label>
+            <select id="filter-priority">
+                <option value="">All Priorities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <label for="filter-date">Filter by Date</label>
+            <input type="date" id="filter-date">
+        </div>
+         <div class="filter-item">
+            <label for="sort-by">Sort By</label>
+            <select id="sort-by">
+                <option value="newest">Date (Newest First)</option>
+                <option value="oldest">Date (Oldest First)</option>
+                <option value="priority_high_low">Priority (High to Low)</option>
+                <option value="priority_low_high">Priority (Low to High)</option>
+            </select>
+        </div>
+    </div>
+    
+    <ul class="reports-list" id="reports-list">
+        {% for report in reports %}
+            {% if report.report_type == 'attendance' %}
+            <!-- SPECIAL CARD FOR ATTENDANCE RECORDS -->
+            <li class="report-card" 
+                data-id="{{ report.id }}" 
+                data-priority="Low"  {# Attendance is a standard record #}
+                data-project="{{ report.project_name }}"
+                data-timestamp="{{ report.timestamp }}"
+                data-report-type="{{ report.report_type }}"
+                data-reporter="{{ report.submitted_by }}"
+                data-location="{{ report.location }}"
+                data-suggestion="" {# No suggestion for attendance #}
+            >
+                <div class="card-header">
+                    <span class="report-id">Attendance Record: <strong>#{{ report.id }}</strong></span>
+                    <span class="report-timestamp"><i class='bx bx-time-five'></i>{{ report.timestamp }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-line">
+                        <i class='bx bxs-user'></i>
+                        <div class="info-line-content">
+                            <div class="label">Recorded By</div>
+                            <div class="value reporter-name">{{ report.submitted_by }}</div>
+                        </div>
+                    </div>
+                     <div class="info-line">
+                        <i class='bx bxs-hard-hat'></i>
+                        <div class="info-line-content">
+                            <div class="label">Project</div>
+                            <div class="value">{{ report.project_name }}</div>
+                        </div>
+                    </div>
+                    <div class="info-line">
+                        <i class='bx bxs-group'></i>
+                        <div class="info-line-content">
+                            <div class="label">Team Size</div>
+                            <div class="value subjects-list">
+                                {# Assumes a `present_count` field from the backend #}
+                                <span>{{ report.present_count or 'N/A' }} People Present</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-line">
+                        <i class='bx bxs-map'></i>
+                        <div class="info-line-content">
+                            <div class="label">Location</div>
+                            <div class="value">{{ report.location }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if report.image_paths and report.image_paths|length > 0 %}
+                <div class="image-gallery">
+                    <h4>Team Photo</h4>
+                    <div class="image-thumbnails">
+                        {% for img_path in report.image_paths %}
+                            {% if img_path and img_path.strip() %}
+                            <img src="{{ url_for('static', filename=img_path.split('/static/')[1]) }}" alt="Report Image" class="thumbnail">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card-details-section">
+                    <div class="details-box">
+                        <h5><i class='bx bxs-user-detail'></i> Recognized Attendees</h5>
+                        {# The backend should place the list of names in the description field #}
+                        <p class="description-text">{{ report.description }}</p>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="priority-badge priority-Low">
+                        <i class='bx bxs-calendar-check'></i>
+                        <span>Record Complete</span>
+                    </div>
+                    <!-- No 'Edit' button for attendance records -->
+                </div>
+            </li>
+
+            {% else %}
+
+            <!-- ORIGINAL CARD FOR ALL OTHER REPORTS -->
+            <li class="report-card" 
+                data-id="{{ report.id }}" 
+                data-priority="{{ report.priority }}" 
+                data-project="{{ report.project_name }}"
+                data-timestamp="{{ report.timestamp }}"
+                data-report-type="{{ report.report_type }}"
+                data-reporter="{{ report.submitted_by }}"
+                data-location="{{ report.location }}"
+                data-suggestion="{{ report.suggestion }}"
+                data-resolution="{{ report.resolution_time }}"
+            >
+                <div class="card-header">
+                    <span class="report-id">ID: <strong>#{{ report.id }}</strong></span>
+                    <span class="report-timestamp"><i class='bx bx-time-five'></i>{{ report.timestamp }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-line">
+                        <i class='bx bxs-user'></i>
+                        <div class="info-line-content">
+                            <div class="label">Reported By</div>
+                            <div class="value reporter-name">{{ report.submitted_by }}</div>
+                        </div>
+                    </div>
+                     <div class="info-line">
+                        <i class='bx bxs-hard-hat'></i>
+                        <div class="info-line-content">
+                            <div class="label">Project</div>
+                            <div class="value">{{ report.project_name }}</div>
+                        </div>
+                    </div>
+                    <div class="info-line">
+                        <i class='bx bx-category'></i>
+                        <div class="info-line-content">
+                            <div class="label">Subjects</div>
+                            <div class="value subjects-list">
+                                {% for subject in report.subjects %}
+                                    <span>{{ subject }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-line">
+                        <i class='bx bxs-map'></i>
+                        <div class="info-line-content">
+                            <div class="label">Location</div>
+                            <div class="value">{{ report.location }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if report.image_paths and report.image_paths|length > 0 %}
+                <div class="image-gallery">
+                    <h4>Evidence</h4>
+                    <div class="image-thumbnails">
+                        {% for img_path in report.image_paths %}
+                            {% if img_path and img_path.strip() %}
+                            <img src="{{ url_for('static', filename=img_path.split('/static/')[1]) }}" alt="Report Image" class="thumbnail">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card-details-section">
+                    <div class="details-box">
+                        <h5><i class='bx bxs-comment-detail'></i> Description</h5>
+                        <p class="description-text">{{ report.description }}</p>
+                    </div>
+                    <div class="details-box">
+                        <h5><i class='bx bxs-bulb'></i> AI Suggestion</h5>
+                        <p>{{ report.suggestion }}</p>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="priority-badge priority-{{ report.priority or 'Medium' }}">
+                        <i class='bx bxs-flag-alt'></i>
+                        <span>{{ report.priority or 'Medium' }}</span>
+                    </div>
+                    <button class="edit-btn"><i class='bx bxs-edit'></i> Edit & Repost</button>
+                </div>
+            </li>
+            {% endif %}
+        {% else %}
+        <div class="no-reports-message">
+            <i class='bx bx-file-find'></i>
+            <h3>No Reports Found</h3>
+            <p>When new reports are submitted, they will appear here.</p>
+        </div>
+        {% endfor %}
+    </ul>
+</main>
+
+</div>
+
+<!-- EDIT REPORT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit & Repost Report</h2>
+            <button class="modal-close-btn">&times;</button>
+        </div>
+        <form id="edit-report-form" class="modal-body">
+            <input type="hidden" id="edit-report-id">
+            <div class="input-group">
+                <label for="edit-project">Project</label>
+                <select id="edit-project" name="project" required>
+                    {% for p in projects %}
+                    <option value="{{ p.name }}">{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="edit-subject">Subject</label>
+                <select id="edit-subject" name="subject" required>
+                    <option value="safety_observation">Safety Observation</option>
+                    <option value="training_talk">Daily Training Talk</option>
+                    <option value="tech_training">Special Technical Training</option>
+                    <option value="stop_work">Stop Work Order</option>
+                    <option value="near_miss">Near-Miss Report</option>
+                    <option value="sic_meeting">SIC Meeting</option>
+                    <option value="induction">Induction Training</option>
+                    <option value="pep_talk">PEP Talk</option>
+                    <option value="saw">SAW (Safe Act at Work)</option>
+                    <option value="first_aid">First-Aid Case</option>
+                    <option value="dangerous_occurrence">Dangerous Occurrence</option>
+                    <option value="good_practice">Good Practice</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="edit-description">Description & Solution</label>
+                <textarea id="edit-description" name="description" rows="6" required></textarea>
+            </div>
+            <div class="input-group">
+                <label for="edit-priority">Priority</label>
+                <select id="edit-priority" name="priority">
+                    <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+                </select>
+            </div>
+             <div class="input-group">
+                <label for="edit-suggestion">Suggestion</label>
+                <textarea id="edit-suggestion" name="suggestion" rows="4"></textarea>
+            </div>
+            <p style="font-size: 12px; color: var(--text-light); text-align: center;">Date, time, and location will be updated automatically upon submission.</p>
+        </form>
+        <div class="modal-footer">
+            <button type="submit" form="edit-report-form" class="update-btn">Update Report</button>
+        </div>
+    </div>
+</div>
+
+<!-- IMAGE LIGHTBOX -->
+<div id="image-lightbox"><img src="" alt="Enlarged report image"></div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- UNIFIED SCRIPT FOR LAYOUT ---
+    const appContainer = document.getElementById('app-container');
+    const userBtn = document.getElementById('user-btn');
+    const userPanel = document.getElementById('user-panel');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+
+    userBtn.addEventListener('click', () => userPanel.classList.add('active'));
+    closeUserPanelBtn.addEventListener('click', () => userPanel.classList.remove('active'));
+
+    // --- NEW SCRIPT FOR TRACK REPORTS PAGE ---
+    const reportsList = document.getElementById('reports-list');
+    const searchInput = document.getElementById('search-input');
+    const filterProject = document.getElementById('filter-project');
+    const filterPriority = document.getElementById('filter-priority');
+    const filterDate = document.getElementById('filter-date');
+    const sortBy = document.getElementById('sort-by');
+    const allReportCards = () => Array.from(reportsList.querySelectorAll('.report-card'));
+    const priorityMap = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+
+    function filterAndSortReports() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedProject = filterProject.value;
+        const selectedPriority = filterPriority.value;
+        const selectedDate = filterDate.value; // YYYY-MM-DD
+        let visibleReports = 0;
+
+        // 1. Filter
+        allReportCards().forEach(card => {
+            const cardText = card.textContent.toLowerCase();
+            const projectMatch = !selectedProject || card.dataset.project === selectedProject;
+            const priorityMatch = !selectedPriority || card.dataset.priority === selectedPriority;
+            const dateMatch = !selectedDate || card.dataset.timestamp.startsWith(selectedDate);
+            const searchMatch = !searchTerm || cardText.includes(searchTerm);
+
+            if (projectMatch && priorityMatch && dateMatch && searchMatch) {
+                card.classList.remove('hidden');
+                visibleReports++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        // 2. Sort
+        let cardsToSort = allReportCards().filter(card => !card.classList.contains('hidden'));
+
+        cardsToSort.sort((a, b) => {
+            switch (sortBy.value) {
+                case 'oldest':
+                    return a.dataset.timestamp.localeCompare(b.dataset.timestamp);
+                case 'priority_high_low':
+                    return (priorityMap[b.dataset.priority] || 0) - (priorityMap[a.dataset.priority] || 0);
+                case 'priority_low_high':
+                    return (priorityMap[a.dataset.priority] || 0) - (priorityMap[b.dataset.priority] || 0);
+                case 'newest':
+                default:
+                    return b.dataset.timestamp.localeCompare(a.dataset.timestamp);
+            }
+        });
+
+        cardsToSort.forEach(card => reportsList.appendChild(card));
+        
+        const noReportsMsg = document.querySelector('.no-reports-message');
+        if (noReportsMsg) { noReportsMsg.style.display = visibleReports > 0 ? 'none' : 'block'; }
+    }
+
+    [searchInput, filterProject, filterPriority, filterDate, sortBy].forEach(el => {
+        el.addEventListener('input', filterAndSortReports);
+    });
+
+    // EDIT MODAL LOGIC
+    const editModal = document.getElementById('edit-modal');
+    const editForm = document.getElementById('edit-report-form');
+    
+    if (reportsList) {
+        reportsList.addEventListener('click', e => {
+            const editBtn = e.target.closest('.edit-btn');
+            if (editBtn) {
+                const card = editBtn.closest('.report-card');
+                openEditModal(card);
+            }
+        });
+    }
+
+    function openEditModal(card) {
+        document.getElementById('edit-report-id').value = card.dataset.id;
+        document.getElementById('edit-project').value = card.dataset.project;
+        document.getElementById('edit-subject').value = card.dataset.reportType;
+        document.getElementById('edit-description').value = card.querySelector('.description-text').textContent;
+        document.getElementById('edit-priority').value = card.dataset.priority;
+        document.getElementById('edit-suggestion').value = card.dataset.suggestion;
+        editModal.classList.add('active');
+    }
+
+    function closeEditModal() {
+        editModal.classList.remove('active');
+        editForm.reset();
+    }
+    
+    editModal.addEventListener('click', e => {
+        if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close-btn')) {
+            closeEditModal();
+        }
+    });
+
+    editForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const reportId = document.getElementById('edit-report-id').value;
+        const updateBtn = editForm.querySelector('.update-btn');
+        updateBtn.textContent = 'Updating...';
+        updateBtn.disabled = true;
+
+        const newTimestamp = new Date();
+        let newLocation = "Fetching location...";
+
+        try {
+            const pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true }));
+            newLocation = `Lat: ${pos.coords.latitude.toFixed(5)}, Lon: ${pos.coords.longitude.toFixed(5)}`;
+        } catch (err) {
+            newLocation = "Location access denied.";
+            console.warn(`Geolocation Error: ${err.message}`);
+        }
+        
+        const subjectSelect = document.getElementById('edit-subject');
+
+        const formData = {
+            project: document.getElementById('edit-project').value,
+            subjects: [subjectSelect.options[subjectSelect.selectedIndex].text],
+            report_type: subjectSelect.value,
+            description: document.getElementById('edit-description').value,
+            priority: document.getElementById('edit-priority').value,
+            suggestion: document.getElementById('edit-suggestion').value,
+            timestamp: `${newTimestamp.toLocaleDateString('en-CA')} ${newTimestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit'})}`,
+            location: newLocation,
+        };
+        
+        try {
+            const response = await fetch(`/update_report/${reportId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to update report.');
+            }
+            alert('Report updated successfully!');
+            window.location.reload(); 
+        } catch (error) {
+            console.error('Update Error:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            updateBtn.textContent = 'Update Report';
+            updateBtn.disabled = false;
+        }
+    });
+
+    // IMAGE LIGHTBOX LOGIC
+    const lightbox = document.getElementById('image-lightbox');
+    const lightboxImg = lightbox.querySelector('img');
+    
+    if (reportsList) {
+        reportsList.addEventListener('click', e => {
+            if (e.target.classList.contains('thumbnail')) {
+                lightboxImg.src = e.target.src;
+                lightbox.classList.add('active');
+            }
+        });
+    }
+
+    lightbox.addEventListener('click', () => {
+        lightbox.classList.remove('active');
+    });
+
+    // User Info Loader
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            const emergencyVal = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-contact-val').textContent = emergencyVal;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+        } catch (error) { 
+            console.error("Error loading user info:", error);
+            document.getElementById('user-panel-name').textContent = 'Error Loading Data';
+        }
+    };
+    loadUserInfo();
+});
+</script>
+
+</body>
+</html>

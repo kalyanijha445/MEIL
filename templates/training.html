@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Modules</title>
+    <!-- Fonts and Icons -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+    /* CSS RESET & DEFAULTS */
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --success: #2ecc71;
+        --warning: #f39c12;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+    
+    .app-container { width: 100%; margin: 0 auto; background-color: var(--white); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow-x: hidden; }
+    .app-container.panel-open > .app-header,
+    .app-container.panel-open > .main-content,
+    .app-container.panel-open > .app-footer { filter: blur(4px); transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; user-select: none; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+    .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+    .header-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+    .side-menu { position: fixed; top: 0; height: 100%; background-color: var(--white); box-shadow: var(--shadow); transform: translateX(-110%); transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1000; left: 0; width: 280px; }
+    .side-menu.active { transform: translateX(0); }
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0s 0.4s; z-index: 999; }
+    .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+    .menu-header { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+    .menu-logo { height: 40px; }
+    .menu-brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: var(--text-dark); }
+    .menu-list { list-style: none; padding: 10px 0; }
+    .menu-list li a, .menu-list .collapsible-header { display: flex; align-items: center; padding: 15px 20px; color: var(--text-dark); text-decoration: none; font-weight: 500; transition: background-color 0.2s, color 0.2s, font-weight 0.2s; cursor: pointer; position: relative; }
+    .menu-list li a:hover, .menu-list .collapsible-header:hover { background-color: var(--bg-light); }
+    .menu-list li a.active { background-color: var(--primary-blue-light); color: var(--primary-blue); font-weight: 600; }
+    .menu-list li a.active::before { content: ''; position: absolute; left: 0; top: 50%; height: 28px; width: 5px; background-color: var(--primary-blue); border-radius: 0 4px 4px 0; transform-origin: center; transform: translateY(-50%) scaleY(0); animation: grow-indicator 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+    @keyframes grow-indicator { to { transform: translateY(-50%) scaleY(1); } }
+    .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+    .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+    .collapsible-content { padding: 5px 20px 15px 25px; font-size: 14px; color: var(--text-light); max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; line-height: 1.6; }
+    .collapsible-content h4 { font-weight: 600; color: var(--primary-blue); margin-top: 10px; margin-bottom: 8px; font-size: 15px; }
+    .collapsible-content ul { list-style: none; padding-left: 0; }
+    .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+    .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+    .collapsible-content a:hover { text-decoration: underline; }
+    .collapsible-content .contact-label { font-weight: 600; color: var(--text-dark); }
+    
+    /* User Panel Styles */
+    @keyframes slide-up-fade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+    .user-panel.active { transform: translateX(0); }
+    .user-panel.active .user-panel-header > *, .user-panel.active .info-card, .user-panel.active .logout-btn { animation: slide-up-fade 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; opacity: 0; }
+    .user-panel-active .info-card:nth-of-type(1) { animation-delay: 0.3s; }
+    .user-panel.active .info-card:nth-of-type(2) { animation-delay: 0.4s; }
+    .user-panel.active .info-card:nth-of-type(3) { animation-delay: 0.5s; }
+    .user-panel.active .logout-btn { animation-delay: 0.6s; }
+    .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+    .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease, background-color 0.3s ease; }
+    .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); background-color: rgba(255, 255, 255, 0.25); }
+    .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); border-radius: 1px; transition: transform 0.3s ease; }
+    .close-user-panel-btn::before { transform: rotate(45deg); }
+    .close-user-panel-btn::after { transform: rotate(-45deg); }
+    .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+    .user-avatar i { font-size: 45px; color: var(--white); }
+    #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; }
+    #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400;}
+    .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+    .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin: 0 auto 18px auto; max-width: 480px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid var(--border-color); }
+    .info-card h4 { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+    .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; }
+    .info-item:last-child { margin-bottom: 0; }
+    .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; width: 24px; text-align: center; }
+    .info-label { font-size: 12px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 3px; }
+    .info-value { font-weight: 500; font-size: 15px; color: var(--text-dark); overflow-wrap: break-word; word-break: break-word; }
+    .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s; max-width: 480px; }
+    .logout-btn:hover { opacity: 0.85; }
+
+    /* Main Content */
+    .main-content { padding: 20px 20px 80px 20px; flex-grow: 1; overflow-y: auto; }
+
+    /* Training Module Styles */
+    .training-container { max-width: 800px; margin: 0 auto; }
+    .training-card { background-color: var(--white); border-radius: 20px; margin-bottom: 35px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid var(--border-color); opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+    .training-card.visible { opacity: 1; transform: translateY(0); }
+    .card-header { display: flex; align-items: center; padding: 20px 25px; gap: 20px; background-color: var(--primary-blue-light); user-select: none; }
+    .card-icon { font-size: 45px; background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); height: 80px; width: 80px; min-width: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(90, 103, 242, 0.4); animation: icon-float 3s ease-in-out infinite; }
+    @keyframes icon-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .card-title-group { flex-grow: 1; }
+    .card-title { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
+    .card-subtitle { font-size: 15px; color: var(--text-light); }
+    .card-body { padding: 25px; }
+    .section-intro { font-size: 16px; line-height: 1.7; color: var(--text-light); margin-bottom: 25px; }
+    .section-content h4 { font-size: 18px; font-weight: 600; margin-bottom: 15px; margin-top: 30px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-blue-light); display: flex; align-items: center; gap: 10px; }
+    .section-content h4:first-child { margin-top: 0; }
+    .section-content h4 i { color: var(--primary-blue); }
+    .dos-donts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    .dos-donts ul { list-style: none; padding: 15px; border-radius: 12px; }
+    .dos-donts .dos-list { background-color: rgba(46, 204, 113, 0.1); border-left: 5px solid var(--success); }
+    .dos-donts .donts-list { background-color: rgba(239, 83, 80, 0.1); border-left: 5px solid var(--primary-red); }
+    .dos-donts li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; }
+    .dos-donts li:last-child { margin-bottom: 0; }
+    .dos-donts li i { font-size: 20px; margin-top: 2px; }
+    .dos-donts .dos-list i { color: var(--success); }
+    .dos-donts .donts-list i { color: var(--primary-red); }
+    .diagram-container { background-color: var(--bg-light); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid var(--border-color); }
+    .diagram-title { font-weight: 600; margin-bottom: 20px; font-size: 16px; color: var(--text-dark); }
+    .abc-diagram { display: flex; justify-content: space-around; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .abc-item { display: flex; flex-direction: column; align-items: center; width: 120px; text-align: center; }
+    .abc-icon { font-size: 40px; color: var(--white); width: 80px; height: 80px; background-color: var(--text-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; border: 4px solid var(--primary-blue-light); }
+    .abc-label { font-size: 16px; font-weight: 600; margin-bottom: 5px; color: var(--primary-blue); }
+    .abc-desc { font-size: 13px; color: var(--text-light); }
+    .plus-icon { font-size: 30px; color: var(--border-color); font-weight: bold; }
+    
+    /* MODIFIED: Fall Clearance Diagram Styles for 16:9 */
+    .fall-clearance-diagram { position: relative; height: 480px; background-color: #f0f6ff; border-radius: 12px; overflow: hidden; margin-top: 20px; border: 1px solid var(--primary-blue-light); max-width: 550px; margin-left: auto; margin-right: auto; }
+    .fc-anchor { position: absolute; top: 0; left: 0; width: 100%; height: 50px; background-color: #95a5a6; border-bottom: 5px solid #7f8c8d; }
+    .fc-anchor::before { content: ''; position: absolute; width: 100%; height: 100%; background-image: linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 75%, transparent 75%, transparent); background-size: 30px 30px; }
+    .fc-anchor-point { position: absolute; top: 40px; left: 40%; transform: translateX(-50%); width: 20px; height: 20px; background-color: var(--text-dark); border-radius: 50%; border: 3px solid white; z-index: 10; }
+    .fc-lanyard { position: absolute; left: 40%; top: 50px; width: 4px; background-color: var(--warning); height: 0; transform-origin: top; z-index: 4; }
+    /* MODIFIED: Worker icon positioned correctly at the end of the lanyard */
+    .fc-worker { position: absolute; top: 100%; left: 50%; transform: translate(-50%, -2px); font-size: 70px; color: var(--primary-red); z-index: 5; opacity: 0; }
+    
+    /* MODIFIED: New slim grass SVG and improved animation */
+    .fc-ground { position: absolute; bottom: 0; width: 100%; height: 60px; background: linear-gradient(to top, #27ae60, #2ecc71); z-index: 1; }
+    .fc-ground::after { content: 'Ground / Obstruction Level'; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: white; font-weight: 600; font-size: 14px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); z-index: 3; }
+    .fc-ground::before, .grass-blades { content: ""; position: absolute; bottom: 0; left: 0; width: 200%; height: 60px; background-repeat: repeat-x; z-index: 2; transform-origin: bottom center; }
+    .fc-ground::before { background-image: url('data:image/svg+xml;utf8,<svg width="100" height="25" viewBox="0 0 100 25" xmlns="http://www.w3.org/2000/svg"><path d="M0 25 L0 15 C2 10 3 10 5 15 L5 25z M10 25 L10 12 C12 5 13 5 15 12 L15 25z M20 25 L20 18 C22 13 23 13 25 18 L25 25z M30 25 L30 10 C32 2 33 2 35 10 L35 25z M40 25 L40 16 C42 10 43 10 45 16 L45 25z M50 25 L50 14 C52 8 53 8 55 14 L55 25z M60 25 L60 19 C62 15 63 15 65 19 L65 25z M70 25 L70 11 C72 4 73 4 75 11 L75 25z M80 25 L80 15 C82 9 83 9 85 15 L85 25z M90 25 L90 17 C92 12 93 12 95 17 L95 25z" fill="rgba(34,153,84,0.6)"/></svg>'); background-size: 100px 25px; animation: gentle-sway 4s linear infinite; }
+    .fc-ground .grass-blades { background-image: url('data:image/svg+xml;utf8,<svg width="100" height="35" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg"><path d="M0 35 L0 20 C2 10 3 10 5 20 L5 35z M10 35 L10 15 C12 5 13 5 15 15 L15 35z M20 35 L20 25 C22 18 23 18 25 25 L25 35z M30 35 L30 12 C32 2 33 2 35 12 L35 35z M40 35 L40 22 C42 15 43 15 45 22 L45 35z M50 35 L50 18 C52 9 53 9 55 18 L55 35z M60 35 L60 28 C62 20 63 20 65 28 L65 35z M70 35 L70 14 C72 4 73 4 75 14 L75 35z M80 35 L80 20 C82 12 83 12 85 20 L85 35z M90 35 L90 24 C92 18 93 18 95 24 L95 35z" fill="rgba(39,174,96,0.9)"/></svg>'); background-size: 100px 35px; animation: gentle-sway 3s linear infinite reverse; }
+    @keyframes gentle-sway { 0% { transform: translateX(0); } 100% { transform: translateX(-100px); } }
+
+    /* MODIFIED: Re-engineered Measurement Line & repositioned Labels */
+    .dl-total { position: absolute; right: 25%; width: 2px; top: 50px; height: 370px; background: rgba(44, 62, 80, 0.7); opacity: 0; transform-origin: top; transform: scaleY(0); }
+    .dl-total::before, .dl-total::after { content: ''; position: absolute; left: -9px; width: 20px; height: 2px; background: inherit; }
+    .dl-total::before { top: 0; }
+    .dl-total::after { bottom: 0; }
+    .distance-line { position: absolute; right: 25%; width: 1px; background: transparent; }
+    .distance-label { position: absolute; top: 50%; right: calc(25% + 20px); transform: translateY(-50%); background: var(--white); padding: 5px 10px; font-size: 13px; font-weight: 500; white-space: nowrap; border-radius: 6px; color: var(--text-dark); opacity: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);}
+    .distance-line::before { content: ''; position: absolute; top: 0; right: 0; width: 20px; height: 2px; background: rgba(44, 62, 80, 0.7); transform: translateX(1px); opacity: 0; }
+    .dl-lanyard { top: 50px; height: 130px; }
+    .dl-decel { top: 180px; height: 130px; }
+    .dl-safety { top: 310px; height: 110px; }
+
+    /* Animations */
+    @keyframes lanyard-stretch { 0% { height: 0; } 40% { height: 130px; } 100% { height: 260px; } }
+    @keyframes grow-line { to { transform: scaleY(1); opacity: 1; } }
+    @keyframes fade-in { to { opacity: 1; } }
+
+    .fall-clearance-diagram.animated .fc-worker { animation: fade-in 0.2s forwards; }
+    .fall-clearance-diagram.animated .fc-lanyard { animation: lanyard-stretch 2s cubic-bezier(0.6, 0.04, 0.98, 0.335) forwards; }
+    .fall-clearance-diagram.animated .dl-total { animation: grow-line 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards; }
+    .fall-clearance-diagram.animated .distance-line::before { animation: fade-in 0.4s 1s forwards; }
+    .fall-clearance-diagram.animated .distance-label { animation: fade-in 0.5s ease-out forwards; }
+    .fall-clearance-diagram.animated .dl-lanyard .distance-label { animation-delay: 0.8s; }
+    .fall-clearance-diagram.animated .dl-decel .distance-label { animation-delay: 1.1s; }
+    .fall-clearance-diagram.animated .dl-safety .distance-label { animation-delay: 1.4s; }
+    
+    .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; text-align: center; }
+    .role-card { background-color: var(--white); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .role-icon { font-size: 30px; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+    .role-card.entrant .role-icon { background: var(--primary-red); }
+    .role-card.attendant .role-icon { background: var(--success); }
+    .role-card.supervisor .role-icon { background: var(--primary-blue); }
+    .role-title { font-weight: 600; margin-bottom: 5px; color: var(--text-dark); }
+    .role-desc { font-size: 14px; color: var(--text-light); }
+    .workflow-diagram { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    .flow-step { display: flex; align-items: center; background: white; border: 2px solid var(--primary-blue-light); padding: 12px 20px; border-radius: 50px; min-width: 250px; text-align: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .flow-step i { font-size: 22px; margin-right: 12px; color: var(--primary-blue); }
+    .flow-step span { font-weight: 500; font-size: 15px; }
+    .flow-arrow { font-size: 30px; color: var(--border-color); transform: rotate(90deg); }
+
+    /* Footer */
+    .app-footer { display: flex; justify-content: space-around; padding: 10px 0; background-color: var(--white); border-top: 1px solid var(--border-color); position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; }
+    .footer-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-light); text-decoration: none; font-size: 12px; width: 80px; padding: 5px 0; }
+    .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+    .footer-btn.active { color: var(--primary-blue); }
+
+    /* MODIFIED: Responsive Adjustments for 9:16 */
+    @media (max-width: 600px) {
+        .main-content { padding: 15px 15px 80px 15px; }
+        .user-panel-body { padding: 20px 15px; }
+        .info-card, .logout-btn { max-width: none; }
+        .card-header { padding: 15px; gap: 15px; flex-direction: column; text-align: center; }
+        .card-icon { width: 60px; height: 60px; min-width: 60px; font-size: 35px; }
+        .card-title { font-size: 18px; }
+        .card-subtitle { font-size: 13px; }
+        .dos-donts, .roles-grid { grid-template-columns: 1fr; }
+        .abc-diagram { flex-direction: column; gap: 15px; }
+        .abc-item:not(:last-child)::after { content: "+"; font-size: 30px; color: var(--border-color); margin-top: 15px; font-weight: 300; }
+        .plus-icon { display: none; }
+        .flow-step { min-width: auto; width: 100%; }
+
+        /* Fall clearance diagram mobile adjustments */
+        .fall-clearance-diagram { height: 400px; }
+        .fc-ground::after { font-size: 12px; }
+        .fc-anchor-point { left: 35%; }
+        .fc-lanyard { left: 35%; }
+        .fc-worker { font-size: 60px; }
+
+        .dl-total { right: 15%; height: 290px; }
+        .distance-line { right: 15%; }
+        .distance-label { font-size: 10px; padding: 3px 6px; right: calc(15% + 15px); }
+
+        .dl-lanyard { height: 102px; }
+        .dl-decel { top: 152px; height: 102px; }
+        .dl-safety { top: 254px; height: 86px; }
+        @keyframes lanyard-stretch-mobile {
+            0% { height: 0; }
+            40% { height: 102px; }
+            100% { height: 204px; }
+        }
+        .fall-clearance-diagram.animated .fc-lanyard { animation-name: lanyard-stretch-mobile; }
+    }
+</style>
+
+</head>
+<body>
+<div class="app-container" id="app-container">
+    <div class="overlay" id="overlay"></div>
+    <nav class="side-menu" id="side-menu">
+        <div class="menu-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+            <span class="menu-brand-name">MEIL</span>
+        </div>
+        <ul class="menu-list">
+            <li><a href="{{ url_for('employee_dashboard') }}"><i class='bx bxs-home'></i> Home</a></li>
+            <li><a href="{{ url_for('track_reports') }}"><i class='bx bx-line-chart'></i> Track Reports</a></li>
+            <li><a href="{{ url_for('attendance') }}"><i class='bx bx-calendar-check'></i> Attendance</a></li>
+            <li>
+                <div class="collapsible-header" data-target="about-content">
+                    <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+                </div>
+                <div class="collapsible-content" id="about-content">
+                    <h4>Our Mission</h4><p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                    <h4>Core Values</h4>
+                    <ul><li><i class='bx bx-shield-quarter'></i> Safety First</li><li><i class='bx bx-bulb'></i> Proactive Reporting</li></ul>
+                </div>
+            </li>
+            <li>
+                <div class="collapsible-header" data-target="contact-content">
+                    <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+                </div>
+                <div class="collapsible-content" id="contact-content">
+                     <h4>Support Channels</h4>
+                     <ul><li><i class='bx bx-support'></i><div><div class="contact-label">General Helpdesk</div><a href="mailto:safety.support@meil.com">safety.support@meil.com</a></div></li><li><i class='bx bxs-error'></i><div><div class="contact-label">Technical Issues</div><a href="mailto:tech.support@meil.com">tech.support@meil.com</a></div></li></ul>
+                </div>
+            </li>
+        </ul>
+    </nav>
+    <aside class="user-panel" id="user-panel">
+        <div class="user-panel-header">
+            <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close User Panel"></button>
+            <div class="user-avatar"><i class='bx bxs-user'></i></div>
+            <h3 id="user-panel-name">Loading...</h3>
+            <p id="user-panel-email">Loading...</p>
+        </div>
+        <div class="user-panel-body">
+            <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+            <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+            <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+            <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+        </div>
+    </aside>
+    <header class="app-header">
+        <i class='bx bx-menu header-icon' id="menu-btn"></i>
+        <h2 class="header-title">Training Modules</h2>
+        <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+    </header>
+
+<main class="main-content">
+    <div class="training-container">
+
+        <!-- Training Module: Working at Heights -->
+        <div class="training-card">
+            <div class="card-header">
+                <div class="card-icon"><i class='bx bxs-buildings'></i></div>
+                <div class="card-title-group">
+                    <h3 class="card-title">Working at Heights</h3>
+                    <p class="card-subtitle">Mastering elevation safety</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="section-intro">Working at height remains a leading cause of major injuries. This module covers essential precautions to ensure your safety when working above ground level.</p>
+                
+                <div class="section-content">
+                    <h4><i class='bx bx-list-check'></i>Essential Do's and Don'ts</h4>
+                    <div class="dos-donts">
+                        <ul class="dos-list">
+                            <li><i class='bx bx-check-circle'></i><b>Assess Risks:</b> Always conduct a risk assessment before starting work.</li>
+                            <li><i class='bx bx-check-circle'></i><b>Inspect Gear:</b> Check all equipment (harnesses, lanyards, anchors) before each use.</li>
+                            <li><i class='bx bx-check-circle'></i><b>Use Guardrails:</b> Ensure scaffolding and platforms have proper guardrails and toeboards.</li>
+                            <li><i class='bx bx-check-circle'></i><b>Stay Alert:</b> Be aware of your surroundings, including weather conditions and overhead power lines.</li>
+                        </ul>
+                        <ul class="donts-list">
+                            <li><i class='bx bx-x-circle'></i><b>Overreach:</b> Never overreach. Keep your body centered between the rails of the ladder or platform.</li>
+                            <li><i class='bx bx-x-circle'></i><b>Use Damaged Gear:</b> Never use faulty equipment. Report it immediately.</li>
+                            <li><i class='bx bx-x-circle'></i><b>Throw Tools:</b> Never throw tools or materials from a height. Use a rope or hoist.</li>
+                            <li><i class='bx bx-x-circle'></i><b>Work Alone:</b> Avoid working at height alone whenever possible.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="section-content">
+                    <h4><i class='bx bxs-cube-alt'></i>The ABCs of Fall Protection</h4>
+                    <div class="diagram-container">
+                         <p class="diagram-title">Your Personal Fall Arrest System (PFAS) has three critical components that must be used together correctly.</p>
+                        <div class="abc-diagram">
+                            <div class="abc-item">
+                                <div class="abc-icon"><i class='bx bxs-circle'></i></div>
+                                <div class="abc-label">A: Anchorage</div>
+                                <div class="abc-desc">A secure point of attachment for your system.</div>
+                            </div>
+                            <i class='bx bx-plus plus-icon'></i>
+                            <div class="abc-item">
+                                <div class="abc-icon"><i class='bx bxs-t-shirt'></i></div>
+                                <div class="abc-label">B: Body Wear</div>
+                                <div class="abc-desc">A full-body harness that distributes fall forces.</div>
+                            </div>
+                            <i class='bx bx-plus plus-icon'></i>
+                            <div class="abc-item">
+                                <div class="abc-icon"><i class='bx bx-link-alt'></i></div>
+                                <div class="abc-label">C: Connector</div>
+                                <div class="abc-desc">Lanyard or lifeline connecting harness to anchor.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-content">
+                    <h4><i class='bx bx-ruler'></i>Calculating Fall Clearance</h4>
+                    <div class="diagram-container">
+                        <p class="diagram-title">Ensure enough space below you for the fall arrest system to deploy. Total fall distance includes lanyard length, deceleration distance, and a safety factor.</p>
+                        <div class="fall-clearance-diagram">
+                            <div class="fc-anchor"></div>
+                            <div class="fc-anchor-point"></div>
+                            <div class="fc-lanyard">
+                               <div class="fc-worker"><i class='bx bxs-user-pin'></i></div>
+                            </div>
+                            
+                            <div class="dl-total"></div>
+                            <div class="distance-line dl-lanyard"><div class="distance-label">Lanyard (Free Fall)</div></div>
+                            <div class="distance-line dl-decel"><div class="distance-label">Deceleration</div></div>
+                            <div class="distance-line dl-safety"><div class="distance-label">Safety Factor</div></div>
+                            
+                            <div class="fc-ground">
+                                <div class="grass-blades"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Module: Confined Spaces -->
+        <div class="training-card">
+            <div class="card-header">
+                <div class="card-icon"><i class='bx bxs-vector'></i></div>
+                <div class="card-title-group">
+                    <h3 class="card-title">Confined Spaces</h3>
+                    <p class="card-subtitle">Navigating congested areas safely</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="section-intro">Confined spaces present hidden dangers. Poor ventilation, hazardous gases, and limited entry/exit create critical risks. Following strict procedures is essential for your safety and survival.</p>
+                
+                 <div class="section-content">
+                    <h4><i class='bx bxs-error-circle'></i>Recognize the Dangers</h4>
+                    <div class="dos-donts">
+                         <ul class="donts-list" style="border-left-color: var(--warning); background-color: rgba(243, 156, 18, 0.1);">
+                            <li><i class='bx bxs-flame' style="color: var(--warning);"></i><b>Atmospheric Hazards:</b> Lack of oxygen, toxic gases, flammable vapors. The invisible killer.</li>
+                            <li><i class='bx bxs-log-in-circle' style="color: var(--warning);"></i><b>Engulfment Hazards:</b> Being trapped by liquids or loose solids like grain or sand.</li>
+                         </ul>
+                        <ul class="donts-list">
+                            <li><i class='bx bxs-bolt-circle' style="color: var(--primary-red);"></i><b>Physical Hazards:</b> Moving machinery parts, electrocution from faulty wiring.</li>
+                            <li><i class='bx bxs-radiation' style="color: var(--primary-red);"></i><b>Configuration Hazards:</b> Sloping floors, converging walls, or complex layouts that can trap an entrant.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="section-content">
+                    <h4><i class='bx bxs-group'></i>Roles and Responsibilities</h4>
+                    <div class="roles-grid">
+                        <div class="role-card entrant">
+                            <div class="role-icon"><i class='bx bxs-user-pin'></i></div>
+                            <h5 class="role-title">The Entrant</h5>
+                            <p class="role-desc">The person entering the space. Knows the hazards and stays in communication.</p>
+                        </div>
+                        <div class="role-card attendant">
+                            <div class="role-icon"><i class='bx bxs-user-voice'></i></div>
+                            <h5 class="role-title">The Attendant</h5>
+                            <p class="role-desc">Stays outside, monitors the entrant, and calls for rescue if needed. Never leaves the post.</p>
+                        </div>
+                        <div class="role-card supervisor">
+                            <div class="role-icon"><i class='bx bxs-user-check'></i></div>
+                            <h5 class="role-title">Entry Supervisor</h5>
+                            <p class="role-desc">Verifies all tests are done and authorizes the entry by signing the permit.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-content">
+                    <h4><i class='bx bx-sitemap'></i>Safe Entry Workflow</h4>
+                    <div class="diagram-container">
+                         <p class="diagram-title">Entry is a strict, step-by-step process. No steps can be skipped.</p>
+                        <div class="workflow-diagram">
+                            <div class="flow-step"><i class='bx bx-file'></i> <span>Permit Issued by Supervisor</span></div>
+                            <div class="flow-arrow"><i class='bx bx-right-arrow-alt'></i></div>
+                            <div class="flow-step"><i class='bx bxs-thermometer'></i> <span>Atmosphere is Tested & Monitored</span></div>
+                            <div class="flow-arrow"><i class='bx bx-right-arrow-alt'></i></div>
+                            <div class="flow-step"><i class='bx bxs-user-check'></i> <span>Entry Authorized & Attendant Posted</span></div>
+                             <div class="flow-arrow"><i class='bx bx-right-arrow-alt'></i></div>
+                            <div class="flow-step"><i class='bx bx-exit'></i> <span>Work Complete & Permit Closed</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="app-footer">
+    <a href="{{ url_for('employee_dashboard') }}" class="footer-btn">
+        <i class='bx bxs-home'></i>
+        <span>Home</span>
+    </a>
+    <a href="{{ url_for('training') }}" class="footer-btn active">
+        <i class='bx bxs-error-alt'></i>
+        <span>Training</span>
+    </a>
+</footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Core Navigation & Panels ---
+    const appContainer = document.getElementById('app-container');
+    const menuBtn = document.getElementById('menu-btn');
+    const userBtn = document.getElementById('user-btn');
+    const sideMenu = document.getElementById('side-menu');
+    const userPanel = document.getElementById('user-panel');
+    const overlay = document.getElementById('overlay');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+    const collapsibles = document.querySelectorAll('.collapsible-header');
+
+    const toggleSideMenu = () => {
+        overlay.classList.toggle('active');
+        sideMenu.classList.toggle('active');
+        appContainer.classList.toggle('panel-open');
+    };
+    menuBtn.addEventListener('click', toggleSideMenu);
+    userBtn.addEventListener('click', () => userPanel.classList.add('active'));
+    closeUserPanelBtn.addEventListener('click', () => userPanel.classList.remove('active'));
+    overlay.addEventListener('click', () => { if (sideMenu.classList.contains('active')) toggleSideMenu(); });
+
+    collapsibles.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = document.getElementById(header.dataset.target);
+            const arrow = header.querySelector('.arrow');
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+    
+    // --- User Info Loading ---
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+        } catch (error) { console.error("Error loading user info:", error); }
+    };
+
+    // --- Scroll Animation ---
+    const animatedElements = document.querySelectorAll('.training-card');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                const diagram = entry.target.querySelector('.fall-clearance-diagram');
+                if (diagram) {
+                    const lanyard = diagram.querySelector('.fc-lanyard');
+                    // Ensure the correct animation name is used based on screen size
+                    if (window.innerWidth <= 600) {
+                         lanyard.style.animationName = 'lanyard-stretch-mobile';
+                    } else {
+                         lanyard.style.animationName = 'lanyard-stretch';
+                    }
+
+                    setTimeout(() => {
+                        diagram.classList.add('animated');
+                    }, 400); 
+                }
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '0px 0px -100px 0px' });
+    animatedElements.forEach(el => observer.observe(el));
+
+    // --- Initial Load ---
+    loadUserInfo();
+});
+</script>
+
+</body>
+</html>

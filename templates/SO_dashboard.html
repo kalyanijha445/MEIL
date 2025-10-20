@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety Officer Dashboard</title>
+<!-- Fonts and Icons -->
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+    /* CSS RESET & DEFAULTS */
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --success: #2ecc71;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+        overflow: hidden; 
+    }
+
+    /* --- Main App Container --- */
+    .app-container {
+        width: 100%;
+        margin: 0 auto;
+        background-color: var(--white);
+        height: 100vh; 
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    /* CSS for background blur effect (for side-menu only now) */
+    .app-container.panel-open > .app-header,
+    .app-container.panel-open > .main-content,
+    .app-container.panel-open > .app-footer {
+        filter: blur(4px);
+        transition: filter 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    /* --- Header --- */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: var(--white);
+        border-bottom: 1px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .header-icon {
+        font-size: 28px;
+        color: var(--text-dark);
+        cursor: pointer;
+        width: 40px; 
+        text-align: center;
+    }
+    .header-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    /* --- Side Menu (Left Drawer) --- */
+    .side-menu {
+        position: fixed;
+        top: 0;
+        height: 100%;
+        background-color: var(--white);
+        box-shadow: var(--shadow);
+        transform: translateX(-110%);
+        transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        z-index: 1000;
+        left: 0; 
+        width: 280px; 
+    }
+    .side-menu.active { transform: translateX(0); }
+    
+    .overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s, visibility 0s 0.4s;
+        z-index: 999;
+    }
+    .overlay.active { opacity: 1; visibility: visible; transition: opacity 0.4s; }
+
+    .menu-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .menu-logo { height: 40px; }
+    .menu-brand-name {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--text-dark);
+    }
+
+    /* MODIFICATION START: Styles from track_reports.html */
+    .menu-list { list-style: none; padding: 10px 0; }
+    .menu-list li a, .menu-list .collapsible-header {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        color: var(--text-dark);
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.2s, color 0.2s, font-weight 0.2s;
+        cursor: pointer;
+        position: relative;
+    }
+    .menu-list li a:hover, .menu-list .collapsible-header:hover { 
+        background-color: var(--bg-light); 
+    }
+
+    .menu-list li a.active {
+        background-color: var(--primary-blue-light);
+        color: var(--primary-blue);
+        font-weight: 600;
+    }
+    
+    /* Updated Active Menu Indicator Style */
+    .menu-list li a.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        height: 28px;
+        width: 5px;
+        background-color: var(--primary-blue);
+        border-radius: 0 4px 4px 0; /* Creates the curved edges on the right side */
+        transform-origin: center;
+        transform: translateY(-50%) scaleY(0);
+        animation: grow-indicator 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+
+    @keyframes grow-indicator {
+        to {
+            transform: translateY(-50%) scaleY(1);
+        }
+    }
+
+    .menu-list li i { font-size: 22px; margin-right: 15px; width: 25px; text-align: center; }
+    .collapsible-header i.arrow { margin-left: auto; transition: transform 0.3s; }
+   
+    .collapsible-content {
+        padding: 5px 20px 15px 25px;
+        font-size: 14px;
+        color: var(--text-light);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        line-height: 1.6;
+    }
+    .collapsible-content h4 {
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-top: 10px;
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+    .collapsible-content ul { list-style: none; padding-left: 0; }
+    .collapsible-content li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .collapsible-content li i { font-size: 18px; color: var(--text-dark); width: 20px; text-align: center; margin-top: 3px; }
+    .collapsible-content a { color: var(--primary-blue); text-decoration: none; font-weight: 500; }
+    .collapsible-content a:hover { text-decoration: underline; }
+    .collapsible-content .contact-label {
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    /* MODIFICATION END */
+
+    /* --- Fullscreen User Panel --- */
+    @keyframes slide-up-fade {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-panel {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg-light);
+        display: flex;
+        flex-direction: column;
+        z-index: 1100;
+        transform: translateX(100%); /* Start off-screen to the right */
+        transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+    }
+    .user-panel.active {
+        transform: translateX(0); /* Slide in */
+    }
+    /* When active, animate child elements */
+    .user-panel.active .user-panel-header > * {
+        animation: slide-up-fade 0.5s 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        opacity: 0;
+    }
+    .user-panel.active .info-card, .user-panel.active .logout-btn {
+        animation: slide-up-fade 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        opacity: 0; /* Initially hidden until animation starts */
+    }
+    /* Stagger the animation for cards */
+    .user-panel.active .info-card:nth-of-type(1) { animation-delay: 0.3s; }
+    .user-panel.active .info-card:nth-of-type(2) { animation-delay: 0.4s; }
+    .user-panel.active .info-card:nth-of-type(3) { animation-delay: 0.5s; }
+    .user-panel.active .logout-btn { animation-delay: 0.6s; }
+    
+    .user-panel-header {
+        background: linear-gradient(135deg, var(--primary-blue), #6a7ff2);
+        color: var(--white);
+        padding: 40px 25px 30px; /* Increased padding */
+        text-align: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    /* Improved Close Button */
+    .close-user-panel-btn {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 36px;
+        height: 36px;
+        background-color: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .close-user-panel-btn:hover {
+        transform: scale(1.1) rotate(90deg);
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+    .close-user-panel-btn::before,
+    .close-user-panel-btn::after {
+        content: '';
+        position: absolute;
+        width: 16px; /* Thinner lines */
+        height: 2px;
+        background-color: var(--white);
+        border-radius: 1px;
+        transition: transform 0.3s ease;
+    }
+    .close-user-panel-btn::before { transform: rotate(45deg); }
+    .close-user-panel-btn::after { transform: rotate(-45deg); }
+
+    .user-avatar {
+        width: 85px; height: 85px; /* Slightly larger */
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid var(--white);
+    }
+    .user-avatar i { font-size: 45px; color: var(--white); }
+    #user-panel-name { font-size: 20px; font-weight: 600; margin: 0; }
+    #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; font-weight: 400;}
+
+    /* Improved Cards Styling */
+    .user-panel-body {
+        padding: 25px 20px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+    .info-card {
+        background-color: var(--white);
+        padding: 18px;
+        border-radius: 16px;
+        margin: 0 auto 18px auto; /* Centered with more margin */
+        max-width: 480px; /* Set max-width for better look on larger screens */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        border: 1px solid var(--border-color);
+    }
+    .info-card h4 {
+        font-size: 15px; /* Slightly larger title */
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .user-panel .info-item {
+         display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px;
+    }
+    .user-panel .info-item:last-child { margin-bottom: 0; }
+    .user-panel .info-item i {
+        font-size: 22px; color: var(--primary-blue); margin-top: 3px;
+        width: 24px; text-align: center;
+    }
+    .user-panel .info-label {
+        font-size: 12px; color: var(--text-light);
+        letter-spacing: 0.5px; margin-bottom: 3px;
+    }
+    .user-panel .info-value {
+        font-weight: 500; font-size: 15px; color: var(--text-dark);
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .logout-btn {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; width: 100%; padding: 14px; text-decoration: none;
+        background-color: var(--primary-red); color: var(--white); border-radius: 12px;
+        font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s;
+        max-width: 480px;
+    }
+    .logout-btn:hover { opacity: 0.85; }
+
+
+    /* --- Main Content --- */
+    .main-content {
+        padding: 20px 20px 80px 20px;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    .main-content > .welcome-banner, .main-content > #safety-report-form {
+        max-width: 768px; margin-left: auto; margin-right: auto;
+    }
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary-blue), #6a7ff2);
+        color: var(--white);
+        padding: 25px 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow);
+    }
+    .welcome-banner h1 { font-size: 22px; margin-bottom: 5px; }
+    .welcome-banner p { font-size: 14px; opacity: 0.9; }
+
+    /* Form Components */
+    .form-section { margin-bottom: 25px; }
+    .section-title { font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; }
+    .section-title i { font-size: 24px; margin-right: 10px; color: var(--primary-blue); }
+    .input-group, .select-group { margin-bottom: 15px; }
+    label { font-size: 14px; font-weight: 500; color: var(--text-light); margin-bottom: 8px; display: block; }
+    input, select, textarea {
+        width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color);
+        background-color: var(--bg-light); font-family: 'Poppins', sans-serif; font-size: 15px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px var(--primary-blue-light); }
+    .image-upload-options { display: flex; gap: 15px; }
+    .image-upload-btn {
+        flex: 1; padding: 12px; border-radius: 8px; border: 1px dashed var(--primary-blue);
+        background-color: var(--primary-blue-light); color: var(--primary-blue);
+        font-weight: 500; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background-color 0.2s;
+    }
+    .image-upload-btn:hover { background-color: #d8e0ff; }
+    .image-upload-btn i { font-size: 20px; margin-right: 8px; }
+    #cameraInput, #galleryInput { display: none; }
+    .image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .image-preview-item {
+        position: relative; width: 80px; height: 80px; border-radius: 8px;
+        overflow: hidden; border: 1px solid var(--border-color);
+    }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .remove-image-btn {
+        position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+        background-color: rgba(44, 62, 80, 0.7); color: white; border: none; border-radius: 50%;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        font-size: 14px; line-height: 1; padding: 0; font-family: sans-serif; font-weight: bold;
+    }
+    .remove-image-btn:hover { background-color: var(--primary-red); }
+    .auto-data-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .dynamic-fields { padding: 15px; background-color: var(--bg-light); border-radius: 8px; border: 1px solid var(--border-color); }
+    .dynamic-fields-container > div { display: none; }
+    .textarea-wrapper { position: relative; }
+    .voice-btn {
+        position: absolute; right: 10px; bottom: 10px; font-size: 24px; color: var(--primary-blue);
+        cursor: pointer; background: none; border: none;
+    }
+    .voice-btn.recording { color: var(--primary-red); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+    .ai-result {
+        margin-top: 15px; padding: 15px; border-radius: 8px;
+        background: var(--primary-blue-light); border: 1px solid #c4cefb;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    .ai-result-title { font-weight: 600; color: var(--primary-blue); margin-bottom: 8px; }
+    .ai-result strong { font-weight: 600; color: var(--text-dark); }
+    
+    .action-button {
+        width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px;
+        font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .action-button:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .ai-analyze-btn { background: var(--text-dark); color: var(--white); margin-bottom: 15px; }
+    .report-btn { background: var(--primary-blue); color: var(--white); }
+    .report-btn.submitting, .ai-analyze-btn.loading { cursor: not-allowed; background: var(--text-light); }
+    .loader {
+        width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent;
+        border-radius: 50%; display: inline-block; box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .success-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(255, 255, 255, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        flex-direction: column;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s ease, visibility 0s 0.4s;
+    }
+    .success-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.4s ease, visibility 0s;
+    }
+    .success-animation-content {
+        text-align: center;
+        transform: scale(0.8);
+        opacity: 0;
+        animation: pop-in 0.5s 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes pop-in {
+        to { transform: scale(1); opacity: 1; }
+    }
+    .checkmark-circle {
+        width: 80px; height: 80px; border-radius: 50%; display: inline-block;
+        background: var(--success); position: relative; box-shadow: 0 5px 20px rgba(46, 204, 113, 0.3);
+    }
+    .checkmark-circle:after {
+        content: ''; display: block; width: 15px; height: 35px; border: solid white;
+        border-width: 0 5px 5px 0; transform: rotate(45deg); position: absolute;
+        left: 30px; top: 15px; opacity: 0;
+        animation: draw 0.5s 0.2s ease-out forwards;
+    }
+    .success-text { margin-top: 20px; font-weight: 600; font-size: 20px; color: var(--text-dark); }
+    @keyframes draw { 0% { opacity: 0; transform: rotate(45deg) scale(0.5); } 100% { opacity: 1; transform: rotate(45deg) scale(1); } }
+
+    .app-footer {
+        display: flex; justify-content: space-around; padding: 10px 0;
+        background-color: var(--white); border-top: 1px solid var(--border-color);
+        position: sticky; bottom: 0; z-index: 50;
+    }
+    .footer-btn {
+        display: flex; flex-direction: column; align-items: center;
+        color: var(--text-light); text-decoration: none; font-size: 12px;
+        width: 80px;
+    }
+    .footer-btn i { font-size: 24px; margin-bottom: 3px; }
+    .footer-btn.active { color: var(--primary-blue); }
+    .mt-15 { margin-top: 15px; }
+    #ai-result-container { display: none; }
+</style>
+
+</head>
+<body>
+<div class="app-container" id="app-container">
+    <!-- Overlay for side menu -->
+    <div class="overlay" id="overlay"></div>
+<!-- MODIFICATION START: Updated Left Side Menu from track_reports.html -->
+<nav class="side-menu" id="side-menu">
+    <div class="menu-header">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
+        <span class="menu-brand-name">MEIL</span>
+    </div>
+    <ul class="menu-list">
+        <li><a href="{{ url_for('SO_dashboard') }}" class="active"><i class='bx bxs-home'></i> Home</a></li>
+        <li><a href="{{ url_for('track_reports') }}"><i class='bx bx-line-chart'></i> Track Reports</a></li>
+        <li><a href="{{ url_for('attendance') }}"><i class='bx bx-calendar-check'></i> Attendance</a></li>
+        <li>
+            <div class="collapsible-header" data-target="about-content">
+                <i class='bx bx-info-circle'></i> About Us <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="collapsible-content" id="about-content">
+                <h4>Our Mission</h4>
+                <p>To foster a culture of safety and vigilance, ensuring a secure work environment for every member of the MEIL team.</p>
+                <h4>Core Values</h4>
+                <ul>
+                    <li><i class='bx bx-shield-quarter'></i> Safety First</li>
+                    <li><i class='bx bx-bulb'></i> Proactive Reporting</li>
+                </ul>
+            </div>
+        </li>
+         <li>
+            <div class="collapsible-header" data-target="contact-content">
+                <i class='bx bx-phone'></i> Contact Us <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="collapsible-content" id="contact-content">
+                 <h4>Support Channels</h4>
+                 <ul>
+                    <li>
+                        <i class='bx bx-support'></i>
+                        <div>
+                            <div class="contact-label">General Helpdesk</div>
+                            <a href="mailto:safety.support@meil.com">safety.support@meil.com</a>
+                        </div>
+                    </li>
+                    <li>
+                        <i class='bx bx-error'></i>
+                        <div>
+                            <div class="contact-label">Technical Issues</div>
+                            <a href="mailto:tech.support@meil.com">tech.support@meil.com</a>
+                        </div>
+                    </li>
+                 </ul>
+            </div>
+        </li>
+    </ul>
+</nav>
+<!-- MODIFICATION END -->
+
+<!-- User Panel -->
+<aside class="user-panel" id="user-panel">
+    <div class="user-panel-header">
+        <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close User Panel"></button>
+        <div class="user-avatar"><i class='bx bxs-user'></i></div>
+        <h3 id="user-panel-name">Loading...</h3>
+        <p id="user-panel-email">Loading...</p>
+    </div>
+    <div class="user-panel-body">
+        <div class="info-card">
+            <h4>Profile Details</h4>
+            <div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div>
+            <div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div>
+        </div>
+        <div class="info-card">
+            <h4>Project Info</h4>
+            <div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div>
+        </div>
+        <div class="info-card">
+            <h4>Emergency Contact</h4>
+            <div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div>
+            <div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+    </div>
+</aside>
+
+<!-- App Header -->
+<header class="app-header">
+    <i class='bx bx-menu header-icon' id="menu-btn"></i>
+    <h2 class="header-title">Dashboard</h2>
+    <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+</header>
+
+<!-- Main Content & Form -->
+<main class="main-content">
+    <section class="welcome-banner">
+        <h1 id="welcome-name">Welcome, ...</h1>
+        <p>Ready to report a new safety observation?</p>
+    </section>
+    
+    <form id="safety-report-form">
+        <div class="form-section">
+            <div class="section-title"><i class='bx bx-camera'></i>Capture Evidence</div>
+            <div class="image-upload-options">
+                <label for="cameraInput" class="image-upload-btn"><i class='bx bxs-camera'></i> Capture</label>
+                <label for="galleryInput" class="image-upload-btn"><i class='bx bxs-image-add'></i> Upload</label>
+            </div>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple>
+            <input type="file" id="galleryInput" accept="image/*" multiple>
+            <div id="image-preview-container" class="image-preview-container"></div>
+        </div>
+        
+        <div class="form-section">
+            <div class="section-title"><i class='bx bx-detail'></i>Report Details</div>
+            <div class="select-group">
+                <label for="project">Project</label>
+                <select id="project" name="project" required>
+                    <option value="" disabled selected>Loading projects...</option>
+                </select>
+            </div>
+            <div class="select-group">
+                <label for="subject">Subject</label>
+                <select id="subject" name="subject" required>
+                    <option value="" disabled selected>Select a subject</option>
+                    <option value="safety_observation">Safety Observation</option>
+                    <option value="training_talk">Daily Training Talk</option>
+                    <option value="tech_training">Special Technical Training</option>
+                    <option value="stop_work">Stop Work Order</option>
+                    <option value="near_miss">Near-Miss Report</option>
+                    <option value="sic_meeting">SIC Meeting</option>
+                    <option value="induction">Induction Training</option>
+                    <option value="pep_talk">PEP Talk</option>
+                    <option value="saw">SAW (Safe Act at Work)</option>
+                    <option value="first_aid">First-Aid Case</option>
+                    <option value="dangerous_occurrence">Dangerous Occurrence</option>
+                    <option value="good_practice">Good Practice</option>
+                </select>
+            </div>
+        </div>
+        
+         <div class="form-section">
+            <div class="section-title"><i class='bx bx-timer'></i>Automatic Data</div>
+            <div class="auto-data-group">
+                 <div class="input-group">
+                    <label for="date">Date</label>
+                    <input type="text" id="date" name="date" readonly>
+                 </div>
+                 <div class="input-group">
+                    <label for="time">Time</label>
+                    <input type="text" id="time" name="time" readonly>
+                 </div>
+            </div>
+            <div class="input-group mt-15">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" placeholder="Fetching location..." readonly>
+            </div>
+        </div>
+
+        <div class="form-section dynamic-fields-container">
+            <div id="form-safety_observation">
+                <div class="dynamic-fields"><label for="responsible_person_so">Responsible Person Name</label><input type="text" id="responsible_person_so" name="responsible_person_so"></div>
+            </div>
+            <div id="form-training">
+                <div class="dynamic-fields">
+                     <div class="input-group"><label for="educator_name">Educator Name</label><input type="text" id="educator_name" name="educator_name"></div>
+                     <div class="input-group"><label for="attendees">No. of People Attended</label><input type="number" id="attendees" name="attendees"></div>
+                     <div class="input-group"><label for="duration">Duration (in minutes)</label><input type="number" id="duration" name="duration"></div>
+                     <div class="input-group"><label for="topic">Topic of Discussion</label><input type="text" id="topic" name="topic"></div>
+                </div>
+            </div>
+             <div id="form-stop_danger">
+                <div class="dynamic-fields">
+                     <div class="input-group"><label for="incident_sd">Incident Occurred</label><textarea id="incident_sd" name="incident_sd" rows="3"></textarea></div>
+                     <div class="input-group"><label for="responsible_person_sd">Responsible Person Name</label><input type="text" id="responsible_person_sd" name="responsible_person_sd"></div>
+                </div>
+            </div>
+            <div id="form-near_miss">
+                <div class="dynamic-fields">
+                     <div class="input-group"><label for="incident_nm">Incident Occurred</label><textarea id="incident_nm" name="incident_nm" rows="3"></textarea></div>
+                </div>
+            </div>
+            <div id="form-saw">
+                <div class="dynamic-fields"><label for="supervisor">Concerned Work Supervisor</label><input type="text" id="supervisor" name="supervisor"></div>
+            </div>
+            <div id="form-first_aid">
+                <div class="dynamic-fields">
+                     <div class="input-group"><label for="victim_name">Name of Victim</label><input type="text" id="victim_name" name="victim_name"></div>
+                     <div class="input-group"><label for="victim_id">User ID of Victim</label><input type="text" id="victim_id" name="victim_id"></div>
+                     <div class="input-group"><label for="contractor_name">Contractor Name</label><input type="text" id="contractor_name" name="contractor_name"></div>
+                     <div class="input-group"><label for="treatment_by">Treatment Given By</label><input type="text" id="treatment_by" name="treatment_by"></div>
+                </div>
+            </div>
+             <div id="form-good_practice">
+                <div class="dynamic-fields">
+                     <div class="input-group"><label for="person_name_gp">Person's Name</label><input type="text" id="person_name_gp" name="person_name_gp"></div>
+                     <div class="input-group"><label for="incident_gp">Observed Good Practice</label><textarea id="incident_gp" name="incident_gp" rows="3"></textarea></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-title"><i class='bx bxs-comment-detail'></i>Description & Solution</div>
+            <label for="description">Describe the situation</label>
+            <div class="textarea-wrapper">
+                 <textarea id="description" name="description" rows="5" placeholder="Describe what you observed..." required></textarea>
+                 <button type="button" class="voice-btn" id="voice-btn" aria-label="Start Voice Typing" title="Start Voice Typing"><i class='bx bxs-microphone'></i></button>
+            </div>
+            <div id="ai-result-container"></div>
+            <button type="button" class="action-button ai-analyze-btn" id="analyze-btn">
+                <i class='bx bxs-magic-wand'></i>
+                <span>Analyze with AI</span>
+            </button>
+        </div>
+        
+         <div id="report-submission-area">
+            <button type="submit" class="action-button report-btn" id="report-btn">Submit Report</button>
+         </div>
+    </form>
+</main>
+
+<footer class="app-footer">
+    <a href="{{ url_for('SO_dashboard') }}" class="footer-btn active">
+        <i class='bx bxs-home'></i>
+        <span>Home</span>
+    </a>
+    <a href="{{ url_for('notices') }}" class="footer-btn">
+        <i class='bx bxs-bell'></i>
+        <span>Notices</span>
+    </a>
+</footer>
+</div>
+<div class="success-overlay" id="success-overlay">
+    <div class="success-animation-content">
+        <div class="checkmark-circle"></div>
+        <p class="success-text">Report Submitted!</p>
+    </div>
+</div>
+
+<script>
+   document.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.getElementById('app-container');
+    const menuBtn = document.getElementById('menu-btn');
+    const userBtn = document.getElementById('user-btn');
+    const sideMenu = document.getElementById('side-menu');
+    const userPanel = document.getElementById('user-panel');
+    const overlay = document.getElementById('overlay');
+    const collapsibles = document.querySelectorAll('.collapsible-header');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+
+    const form = document.getElementById('safety-report-form');
+    const dateEl = document.getElementById('date');
+    const timeEl = document.getElementById('time');
+    const locationEl = document.getElementById('location');
+    const projectSelect = document.getElementById('project');
+    const subjectSelect = document.getElementById('subject');
+    const dynamicFieldsContainer = document.querySelector('.dynamic-fields-container');
+    const allDynamicForms = dynamicFieldsContainer.querySelectorAll('div[id^="form-"]');
+    const descriptionTextarea = document.getElementById('description');
+    const voiceBtn = document.getElementById('voice-btn');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const reportBtn = document.getElementById('report-btn');
+
+    let aiGeneratedData = {};
+    let fileStore = []; 
+    const cameraInput = document.getElementById('cameraInput');
+    const galleryInput = document.getElementById('galleryInput');
+    const previewContainer = document.getElementById('image-preview-container');
+
+    // This function is for the side-menu
+    const toggleSideMenu = () => {
+        overlay.classList.toggle('active');
+        sideMenu.classList.toggle('active');
+        appContainer.classList.toggle('panel-open');
+    };
+
+    menuBtn.addEventListener('click', toggleSideMenu);
+
+    userBtn.addEventListener('click', () => {
+        userPanel.classList.add('active');
+    });
+
+    closeUserPanelBtn.addEventListener('click', () => {
+        userPanel.classList.remove('active');
+    });
+    
+    overlay.addEventListener('click', () => {
+        if (sideMenu.classList.contains('active')) {
+            toggleSideMenu();
+        }
+    });
+
+    collapsibles.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = document.getElementById(header.dataset.target);
+            const arrow = header.querySelector('.arrow');
+            if(content.style.maxHeight) {
+                content.style.maxHeight = null;
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+    const handleFiles = (event) => {
+        const newFiles = Array.from(event.target.files);
+        newFiles.forEach(file => {
+            if (!fileStore.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
+                fileStore.push(file);
+            }
+        });
+        renderPreviews();
+        event.target.value = null; 
+    };
+
+    const renderPreviews = () => {
+        previewContainer.innerHTML = '';
+        fileStore.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'image-preview-item';
+                previewItem.innerHTML = `
+                    <img src="${e.target.result}" alt="${file.name}">
+                    <button type="button" class="remove-image-btn" data-index="${index}" title="Remove image">&times;</button>
+                `;
+                previewContainer.appendChild(previewItem);
+            }
+            reader.readAsDataURL(file);
+        });
+    };
+
+    previewContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('remove-image-btn')) {
+            const indexToRemove = parseInt(event.target.dataset.index, 10);
+            fileStore.splice(indexToRemove, 1);
+            renderPreviews();
+        }
+    });
+
+    cameraInput.addEventListener('change', handleFiles);
+    galleryInput.addEventListener('change', handleFiles);
+    
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            
+            document.getElementById('welcome-name').textContent = `Welcome, ${data.name || 'User'}!`;
+            
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            const emergencyVal = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-contact-val').textContent = emergencyVal;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+        } catch (error) { console.error("Error loading user info:", error); }
+    };
+
+    const loadProjects = async () => {
+         try {
+            const response = await fetch("{{ url_for('get_projects') }}");
+             if (!response.ok) throw new Error('Failed to fetch projects');
+            const projects = await response.json();
+            projectSelect.innerHTML = '<option value="" disabled selected>Select a project</option>';
+            projects.forEach(p => { projectSelect.add(new Option(p.name, p.code)); });
+        } catch (error) {
+             console.error("Error loading projects:", error);
+             projectSelect.innerHTML = '<option value="" disabled selected>Error loading projects</option>';
+        }
+    };
+
+    const setAutoData = () => {
+        const now = new Date();
+        dateEl.value = now.toLocaleDateString('en-CA');
+        timeEl.value = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit'});
+
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                locationEl.value = `Lat: ${pos.coords.latitude.toFixed(5)}, Lon: ${pos.coords.longitude.toFixed(5)}`;
+            }, err => {
+                locationEl.value = 'Location access denied.';
+                console.warn(`Geolocation Error(${err.code}): ${err.message}`);
+            }, { enableHighAccuracy: true });
+        } else { locationEl.value = "Geolocation not supported."; }
+    };
+
+    subjectSelect.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        allDynamicForms.forEach(el => el.style.display = 'none');
+        if (['training_talk', 'tech_training', 'sic_meeting', 'induction', 'pep_talk'].includes(selectedValue)) {
+            document.getElementById('form-training').style.display = 'block';
+        } else if (['stop_work', 'dangerous_occurrence'].includes(selectedValue)) {
+             document.getElementById('form-stop_danger').style.display = 'block';
+        } else if (selectedValue) {
+            const targetForm = document.getElementById(`form-${selectedValue}`);
+            if(targetForm) targetForm.style.display = 'block';
+        }
+    });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        voiceBtn.addEventListener('click', () => { voiceBtn.classList.contains('recording') ? recognition.stop() : recognition.start(); });
+        recognition.onstart = () => voiceBtn.classList.add('recording');
+        recognition.onend = () => voiceBtn.classList.remove('recording');
+        recognition.onerror = (e) => console.error("Speech Recognition Error:", e);
+        recognition.onresult = (e) => {
+            let finalTranscript = '';
+            for (let i = e.resultIndex; i < e.results.length; ++i) {
+                 if (e.results[i].isFinal) { finalTranscript += e.results[i][0].transcript; }
+            }
+            descriptionTextarea.value += finalTranscript;
+        };
+    } else { voiceBtn.style.display = 'none'; }
+
+    const setButtonLoading = (btn, isLoading) => {
+        btn.disabled = isLoading;
+        if (isLoading) {
+            btn.innerHTML = `<span class="loader"></span> ${btn === analyzeBtn ? 'Analyzing...' : 'Submitting...'}`;
+            btn.classList.add(btn === analyzeBtn ? 'loading' : 'submitting');
+        } else {
+            btn.innerHTML = btn === analyzeBtn ? `<i class='bx bxs-magic-wand'></i> <span>Analyze with AI</span>` : 'Submit Report';
+            btn.classList.remove('loading', 'submitting');
+        }
+    };
+
+    analyzeBtn.addEventListener('click', async () => {
+        if (!descriptionTextarea.value && fileStore.length === 0) {
+            alert('Please provide a description or upload images before analyzing.'); return;
+        }
+        setButtonLoading(analyzeBtn, true);
+        const formData = new FormData();
+        fileStore.forEach(file => formData.append('images', file));
+        formData.append('description', descriptionTextarea.value);
+        formData.append('project', projectSelect.options[projectSelect.selectedIndex].text);
+        formData.append('subjects', subjectSelect.options[subjectSelect.selectedIndex].text);
+        try {
+            const response = await fetch("{{ url_for('analyze_new') }}", { method: 'POST', body: formData });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'AI Analysis failed.');
+            aiGeneratedData = result; 
+            if(result.description) descriptionTextarea.value = result.description;
+            const resultContainer = document.getElementById('ai-result-container');
+            resultContainer.style.display = 'block';
+            resultContainer.innerHTML = `
+                <div class="ai-result">
+                    <div class="ai-result-title">AI Analysis Complete:</div>
+                    <strong>Priority:</strong> ${result.priority || 'N/A'}<br>
+                    <strong>Suggested Resolution Time:</strong> ${result.resolution_time || 'N/A'}<br>
+                    <strong>Suggestion:</strong> ${result.suggestion || 'N/A'}
+                </div>`;
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            console.error('AI Analysis Error:', error);
+        } finally { setButtonLoading(analyzeBtn, false); }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setButtonLoading(reportBtn, true);
+        let specificData = {};
+        const activeDynamicForm = dynamicFieldsContainer.querySelector('div[style*="display: block"]');
+        if (activeDynamicForm) {
+            activeDynamicForm.querySelectorAll('input, textarea, select').forEach(input => {
+                if(input.value) {
+                     specificData[input.closest('.input-group, .dynamic-fields')?.querySelector('label')?.textContent || input.name] = input.value;
+                }
+            });
+        }
+        let combinedDescription = descriptionTextarea.value;
+        if(Object.keys(specificData).length > 0) {
+             combinedDescription += "\n\n--- Report Specifics ---\n";
+             for(const [key, value] of Object.entries(specificData)) combinedDescription += `${key}: ${value}\n`;
+        }
+        const finalReportData = {
+            project: projectSelect.options[projectSelect.selectedIndex].text,
+            subjects: [subjectSelect.options[subjectSelect.selectedIndex].text],
+            description: combinedDescription, location: locationEl.value, timestamp: `${dateEl.value} ${timeEl.value}`,
+            report_type: subjectSelect.value, priority: aiGeneratedData.priority || 'Not Analyzed',
+            resolution_time: aiGeneratedData.resolution_time || 'N/A', suggestion: aiGeneratedData.suggestion || 'N/A',
+            image_paths: aiGeneratedData.image_paths || []
+        };
+        try {
+            const response = await fetch("{{ url_for('submit_report') }}", {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(finalReportData)
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message || 'Submission failed');
+            
+            const successOverlay = document.getElementById('success-overlay');
+            if (successOverlay) {
+                successOverlay.classList.add('visible');
+            }
+            
+            setTimeout(() => { window.location.reload(); }, 3000);
+        } catch (error) {
+             alert(`Submission Error: ${error.message}`);
+             console.error('Submission Error:', error);
+             setButtonLoading(reportBtn, false);
+        }
+    });
+
+    loadUserInfo();
+    loadProjects();
+    setAutoData();
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live View | SafetyAI</title>
+ <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-512.png') }}">
+    <meta name="theme-color" content="#5a67f2"> <!-- Matches your blue theme -->
+<!-- Fonts and Icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<style>
+    /* --- UNIFIED CSS FROM OTHER PAGES (Theme Consistency) --- */
+    :root {
+        --primary-blue: #5a67f2;
+        --primary-blue-light: #eaefff;
+        --primary-red: #ef5350;
+        --text-dark: #2c3e50;
+        --text-light: #7f8c8d;
+        --bg-light: #f8f9fa;
+        --border-color: #e0e0e0;
+        --white: #ffffff;
+        --shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+    
+    .app-container { width: 100%; margin: 0 auto; background-color: var(--white); min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+    .app-container.panel-open > .app-header, .app-container.panel-open > .main-content { filter: blur(4px); pointer-events: none; user-select: none; }
+    
+    /* Header */
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+    .header-icon { font-size: 28px; color: var(--text-dark); cursor: pointer; width: 40px; text-align: center; }
+    .header-title { font-size: 20px; font-weight: 600; }
+    .back-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background-color: var(--primary-blue-light); box-shadow: 0 4px 15px rgba(90, 103, 242, 0.2); text-decoration: none; cursor: pointer; transition: all 0.3s; outline: none; }
+    .back-btn i { font-size: 28px; color: var(--primary-blue); }
+    .back-btn:hover, .back-btn:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(90, 103, 242, 0.35); }
+    
+    /* User Panel */
+    .user-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-light); display: flex; flex-direction: column; z-index: 1100; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1); }
+    .user-panel.active { transform: translateX(0); }
+    .user-panel-header { background: linear-gradient(135deg, var(--primary-blue), #6a7ff2); color: var(--white); padding: 40px 25px 30px; text-align: center; flex-shrink: 0; position: relative; }
+    .close-user-panel-btn { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+    .close-user-panel-btn:hover { transform: scale(1.1) rotate(90deg); }
+    .close-user-panel-btn::before, .close-user-panel-btn::after { content: ''; position: absolute; width: 16px; height: 2px; background-color: var(--white); } .close-user-panel-btn::before { transform: rotate(45deg); } .close-user-panel-btn::after { transform: rotate(-45deg); }
+    .user-avatar { width: 85px; height: 85px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--white); }
+    .user-avatar i { font-size: 45px; color: var(--white); } #user-panel-name { font-size: 20px; font-weight: 600; } #user-panel-email { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+    .user-panel-body { padding: 25px 20px; overflow-y: auto; flex-grow: 1; }
+    .info-card { background-color: var(--white); padding: 18px; border-radius: 16px; margin: 0 auto 18px auto; max-width: 480px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+    .info-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+    .user-panel .info-item { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 15px; }
+    .user-panel .info-item i { font-size: 22px; color: var(--primary-blue); margin-top: 3px; }
+    .user-panel .info-label { font-size: 12px; color: var(--text-light); }
+    .user-panel .info-value { font-weight: 500; font-size: 15px; }
+    .logout-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; text-decoration: none; background-color: var(--primary-red); color: var(--white); border-radius: 12px; font-weight: 600; margin: 10px auto 0 auto; transition: opacity 0.2s; max-width: 480px; }
+    .logout-btn:hover { opacity: 0.85; }
+
+    /* --- PAGE-SPECIFIC STYLES --- */
+    .main-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+    .video-container { width: 100%; border-radius: 18px; overflow: hidden; background-color: #000; box-shadow: var(--shadow); margin-bottom: 25px; border: 1px solid var(--border-color); flex-shrink: 0; aspect-ratio: 16 / 9; /* Ensures a consistent shape before video loads */ }
+    .video-container img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    
+    .live-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+    
+    .detail-item { background-color: var(--white); border: 1px solid var(--border-color); padding: 20px; border-radius: 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 18px; }
+    .detail-item i { font-size: 32px; color: var(--primary-blue); background-color: var(--primary-blue-light); padding: 12px; border-radius: 12px; flex-shrink: 0; }
+    .detail-item .label { font-size: 13px; color: var(--text-light); margin-bottom: 3px; }
+    .detail-item .value { font-size: 16px; font-weight: 600; color: var(--text-dark); word-break: break-word; }
+</style>
+</head>
+<body>
+<div class="app-container" id="app-container">
+
+<!-- UNIFIED User Panel -->
+<aside class="user-panel" id="user-panel">
+    <div class="user-panel-header">
+        <button type="button" class="close-user-panel-btn" id="close-user-panel-btn" aria-label="Close User Panel"></button>
+        <div class="user-avatar"><i class='bx bxs-user'></i></div>
+        <h3 id="user-panel-name">Loading...</h3>
+        <p id="user-panel-email">Loading...</p>
+    </div>
+    <div class="user-panel-body">
+        <div class="info-card"><h4>Profile Details</h4><div class="info-item"><i class='bx bxs-id-card'></i><div><div class="info-label">User ID</div><div class="info-value" id="user-id-val">...</div></div></div><div class="info-item"><i class='bx bxs-droplet'></i><div><div class="info-label">Blood Group</div><div class="info-value" id="user-blood-val">...</div></div></div></div>
+        <div class="info-card"><h4>Project Info</h4><div class="info-item"><i class='bx bxs-hard-hat'></i><div><div class="info-label">Project</div><div class="info-value" id="user-project-val">...</div></div></div></div>
+        <div class="info-card"><h4>Emergency Contact</h4><div class="info-item"><i class='bx bxs-phone-call'></i><div><div class="info-label">Contact Person</div><div class="info-value" id="user-emergency-contact-val">...</div></div></div><div class="info-item"><i class='bx bxs-user-detail'></i><div><div class="info-label">Relation</div><div class="info-value" id="user-emergency-relation-val">...</div></div></div></div>
+        <a href="{{ url_for('logout') }}" class="logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+    </div>
+</aside>
+
+<!-- UNIFIED App Header -->
+<header class="app-header">
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn" aria-label="Go Back"><i class='bx bx-arrow-back'></i></a>
+    <h2 class="header-title">Live View</h2>
+    <i class='bx bxs-user-circle header-icon' id="user-btn"></i>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="video-container">
+        <!-- 
+            IMPORTANT: For this live feed to work, you must add a new route in your app.py 
+            named 'video_feed' that streams the camera data, similar to the '/icu_feed' 
+            route in your reference code.
+        -->
+        <img src="{{ url_for('video_feed') }}" alt="Live Camera Feed - Connecting...">
+    </div>
+
+    <div class="live-details-grid">
+        <div class="detail-item">
+            <i class='bx bxs-time-five'></i>
+            <div>
+                <div class="label">Live Time</div>
+                <div class="value" id="live-time">--:--:--</div>
+            </div>
+        </div>
+        <div class="detail-item">
+            <i class='bx bxs-map'></i>
+            <div>
+                <div class="label">Live Location (Lat, Lon)</div>
+                <div class="value" id="live-location">Requesting access...</div>
+            </div>
+        </div>
+         <div class="detail-item">
+            <i class='bx bxs-calendar'></i>
+            <div>
+                <div class="label">Date</div>
+                <div class="value" id="live-date">----/--/--</div>
+            </div>
+        </div>
+         <div class="detail-item">
+            <i class='bx bxs-hard-hat'></i>
+            <div>
+                <div class="label">Project Site</div>
+                <div class="value" id="project-site-val">Project Alpha</div>
+            </div>
+        </div>
+        <div class="detail-item">
+            <i class='bx bxs-buildings'></i>
+            <div>
+                <div class="label">Department</div>
+                <div class="value" id="department-val">Structural Operations</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- UNIFIED SCRIPT FOR LAYOUT ---
+    const userBtn = document.getElementById('user-btn');
+    const userPanel = document.getElementById('user-panel');
+    const closeUserPanelBtn = document.getElementById('close-user-panel-btn');
+
+    userBtn.addEventListener('click', () => {
+        document.getElementById('app-container').classList.add('panel-open');
+        userPanel.classList.add('active');
+    });
+    closeUserPanelBtn.addEventListener('click', () => {
+        document.getElementById('app-container').classList.remove('panel-open');
+        userPanel.classList.remove('active');
+    });
+    
+    // User Info Loader
+    const loadUserInfo = async () => {
+        try {
+            const response = await fetch("{{ url_for('get_user_info') }}");
+            if (!response.ok) throw new Error('Failed to fetch user info');
+            const data = await response.json();
+            document.getElementById('user-panel-name').textContent = data.name || 'N/A';
+            document.getElementById('user-panel-email').textContent = data.email || 'N/A';
+            document.getElementById('user-id-val').textContent = data.user_id || 'N/A';
+            document.getElementById('user-blood-val').textContent = data.blood_group || 'N/A';
+            document.getElementById('user-project-val').textContent = data.project_name || 'N/A';
+            document.getElementById('user-emergency-contact-val').textContent = `${data.emergency_name || 'N/A'} (${data.emergency_mobile || 'N/A'})`;
+            document.getElementById('user-emergency-relation-val').textContent = data.emergency_relation || 'N/A';
+            // Also update the static project details on the main page
+            document.getElementById('project-site-val').textContent = data.project_name || 'General';
+        } catch (error) { 
+            console.error("Error loading user info:", error);
+            document.getElementById('user-panel-name').textContent = 'Error Loading Data';
+        }
+    };
+    loadUserInfo();
+
+    // --- PAGE-SPECIFIC SCRIPT FOR LIVE DETAILS ---
+    const timeElement = document.getElementById('live-time');
+    const dateElement = document.getElementById('live-date');
+    const locationElement = document.getElementById('live-location');
+
+    // 1. Update Date (only needs to be set once)
+    const currentDate = new Date();
+    dateElement.textContent = currentDate.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // 2. Update Time every second
+    setInterval(() => {
+        const now = new Date();
+        timeElement.textContent = now.toLocaleTimeString();
+    }, 1000);
+
+    // 3. Update Location using Geolocation API
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(showPosition, showError, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+    } else {
+        locationElement.textContent = "Geolocation is not supported by this browser.";
+    }
+
+    function showPosition(position) {
+        const lat = position.coords.latitude.toFixed(5);
+        const lon = position.coords.longitude.toFixed(5);
+        locationElement.textContent = `${lat}, ${lon}`;
+    }
+
+    function showError(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                locationElement.textContent = "Location access denied.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                locationElement.textContent = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                locationElement.textContent = "Location request timed out.";
+                break;
+            case error.UNKNOWN_ERROR:
+                locationElement.textContent = "An unknown error occurred.";
+                break;
+        }
+    }
+});
+</script>
+</body>
+</html>
