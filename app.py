@@ -23,7 +23,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 
-GEMINI_API_KEY = "AIzaSyA04euYa5lIfCVoGvTr7zzAb-9nQ5BHj6Y"
+GEMINI_API_KEY = "AIzaSyBKDXNYM_RTpDrjLZyF-4G3aldD5j8qdGA"
 
 
 try:
@@ -313,6 +313,12 @@ def SO_dashboard():
         return redirect(url_for('login'))
     return render_template('SO_dashboard.html')
 
+@app.route('/sos')
+def sos_page():
+    if 'user_id' not in session:
+        flash("You must be logged in to access this page.")
+        return redirect(url_for('login'))
+    return render_template('SOS.html')
 
 @app.route('/manager_dashboard')
 def SM_dashboard(): 
