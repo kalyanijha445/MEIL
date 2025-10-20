@@ -500,7 +500,8 @@
     <div class="overlay" id="overlay"></div>
 <!-- MODIFICATION START: Updated Left Side Menu from track_reports.html -->
 <nav class="side-menu" id="side-menu">
-    <div class="menu-header">
+    <!-- MODIFICATION: Added an ID here for the click listener -->
+    <div class="menu-header" id="menu-header-logo" style="cursor: pointer;">
         <img src="{{ url_for('static', filename='logo.png') }}" alt="MEIL Logo" class="menu-logo">
         <span class="menu-brand-name">MEIL</span>
     </div>
@@ -1000,6 +1001,37 @@
              setButtonLoading(reportBtn, false);
         }
     });
+
+    // --- MODIFICATION START: Logic for 5-click logo redirection ---
+    const menuHeaderLogo = document.getElementById('menu-header-logo');
+    if (menuHeaderLogo) {
+        let clickCount = 0;
+        let clickTimer = null;
+
+        menuHeaderLogo.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent any default link behavior
+            clickCount++;
+
+            // Clear any existing timer to reset the 1.5s countdown
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+            }
+
+            // If 5 clicks are reached, redirect
+            if (clickCount >= 5) {
+                // IMPORTANT: Ensure you have a route named 'sos_page' in your app.py
+                window.location.href = "{{ url_for('sos_page') }}";
+                clickCount = 0; // Reset counter
+            } else {
+                 // Set a timer. If the user doesn't click again within 1.5 seconds, reset the count.
+                clickTimer = setTimeout(() => {
+                    clickCount = 0;
+                }, 1500); // 1.5 seconds
+            }
+        });
+    }
+    // --- MODIFICATION END ---
+
 
     loadUserInfo();
     loadProjects();
