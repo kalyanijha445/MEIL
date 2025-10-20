@@ -1,1 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency SOS Dispatch</title>
 
+    <!-- PWA Manifest & Icons -->
+    <meta name="theme-color" content="#5a67f2">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+
+    <!-- Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <style>
+        /* --- THEME & ANIMATIONS --- */
+        :root {
+            --primary-blue: #5a67f2;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #f4f7fc;
+            --white: #ffffff;
+            --primary-blue-light: #eaefff;
+
+            --sos-red: #e74c3c;
+            --sos-green: #2ecc71;
+            --sos-blue: #3498db;
+            
+            --transition-smooth: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            
+            --transition-fan-out: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            --shadow-smooth-light: 0 4px 6px rgba(44, 62, 80, 0.1), 0 1px 3px rgba(44, 62, 80, 0.08);
+            --shadow-smooth-medium: 0 10px 15px -3px rgba(44, 62, 80, 0.1), 0 4px 6px -2px rgba(44, 62, 80, 0.05);
+            --shadow-smooth-strong: 0 20px 25px -5px rgba(90, 103, 242, 0.2), 0 10px 10px -5px rgba(90, 103, 242, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            background-image: 
+                radial-gradient(circle at 5% 5%, var(--primary-blue-light) 0%, transparent 40%),
+                radial-gradient(circle at 95% 95%, var(--primary-blue-light) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, #d8e0ff 0%, transparent 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        /* --- APP CONTAINER & ANIMATIONS --- */
+        .app-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .close-button {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            background: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-smooth-medium);
+            font-size: 1.8rem;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: all 0.4s ease;
+            z-index: 100;
+        }
+
+        .close-button:hover {
+            transform: scale(1.1) rotate(90deg);
+            background: var(--primary-blue);
+            color: var(--white);
+            box-shadow: var(--shadow-smooth-strong);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: var(--shadow-smooth-strong); }
+            50% { transform: scale(1.05); box-shadow: 0 25px 30px -5px rgba(90, 103, 242, 0.25), 0 15px 15px -5px rgba(90, 103, 242, 0.15); }
+            100% { transform: scale(1); box-shadow: var(--shadow-smooth-strong); }
+        }
+
+        /* --- SOS INTERFACE --- */
+        /* MODIFICATION: Removed the container-specific styling (background, border, etc.) */
+        .sos-container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 90px;
+            animation: fadeIn 0.8s var(--transition-bounce) both;
+        }
+        
+        .sos-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            letter-spacing: -1px;
+        }
+
+        .sos-header p {
+            font-size: 1.15rem;
+            color: var(--text-light);
+            max-width: 400px;
+            margin-top: 5px;
+        }
+        
+        .sos-interaction-zone {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- MAIN TRIGGER BUTTON --- */
+        .sos-trigger-button {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+            box-shadow: var(--shadow-smooth-strong);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            color: var(--primary-blue);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.4s var(--transition-bounce), background 0.3s ease;
+            animation: pulse 2.5s infinite ease-in-out;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        .sos-trigger-button:hover {
+             transform: scale(1.08) !important;
+             animation-play-state: paused;
+        }
+
+        .sos-trigger-button.active {
+            transform: scale(0.9);
+            animation-play-state: paused;
+        }
+
+        .sos-trigger-button .sos-icon { font-size: 4rem; transition: var(--transition-bounce); }
+        .sos-trigger-button .sos-label { font-size: 1.4rem; font-weight: 600; transition: var(--transition-smooth); }
+        
+        .sos-trigger-button .sos-confirmation-icon {
+            font-size: 4rem;
+            position: absolute;
+            transform: scale(0);
+            transition: var(--transition-bounce);
+            color: var(--sos-green);
+        }
+
+        .sos-trigger-button.sent .sos-icon,
+        .sos-trigger-button.sent .sos-label {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        .sos-trigger-button.sent .sos-confirmation-icon {
+            transform: scale(1);
+        }
+
+
+        /* --- OPTION BUTTONS --- */
+        .sos-option {
+            position: absolute;
+            top: 50%; left: 50%;
+            margin-top: -35px; margin-left: -35px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 2.2rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-smooth-medium);
+            z-index: 5;
+            
+            transition: all var(--transition-fan-out);
+            transform: scale(0);
+            opacity: 0;
+            transform-origin: center;
+        }
+
+        .sos-option:hover {
+            transform: scale(1.2) rotate(15deg) !important;
+            filter: brightness(1.15);
+            box-shadow: var(--shadow-smooth-strong);
+        }
+        
+        .sos-interaction-zone.open #health-button {
+            transform: translateY(-140px) scale(1);
+            opacity: 1;
+        }
+        .sos-interaction-zone.open #fire-button {
+             transform: translateX(-130px) translateY(70px) scale(1);
+             opacity: 1;
+        }
+        .sos-interaction-zone.open #maintenance-button {
+             transform: translateX(130px) translateY(70px) scale(1);
+             opacity: 1;
+        }
+        
+        #health-button { background: var(--sos-green); transition-delay: 0s; }
+        #fire-button { background: var(--sos-red); transition-delay: 0.1s; }
+        #maintenance-button { background: var(--sos-blue); transition-delay: 0.2s; }
+        
+
+        /* --- FOOTER/STATUS --- */
+        .sos-footer {
+            min-height: 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; 
+        }
+        .sos-status {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: var(--shadow-smooth-light);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease;
+        }
+        
+        .sos-status.sent {
+            color: var(--white);
+            background-color: var(--sos-green);
+            opacity: 1;
+            transform: translateY(0);
+            box-shadow: var(--shadow-smooth-medium);
+        }
+        
+        .live-data-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .live-data-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            background: rgba(255, 255, 255, 0.25);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 18px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-smooth-light);
+        }
+        
+        .live-data-item i {
+            font-size: 1.5em;
+            color: var(--primary-blue);
+        }
+
+        /* --- RESPONSIVE DESIGN --- */
+        @media (max-width: 540px) {
+            .sos-container { gap: 40px; }
+            .sos-header h1 { font-size: 2.2rem; }
+            .sos-header p { font-size: 1rem; padding: 0 10px; }
+            .sos-interaction-zone { width: 220px; height: 220px; }
+            .sos-trigger-button { width: 160px; height: 160px; }
+            .sos-trigger-button .sos-icon { font-size: 3.5rem; }
+            .sos-trigger-button .sos-label { font-size: 1.2rem; }
+            
+            .sos-option { width: 60px; height: 60px; font-size: 2rem; }
+
+            .sos-interaction-zone.open #health-button {
+                transform: translateY(-120px) scale(1);
+            }
+            .sos-interaction-zone.open #fire-button {
+                transform: translateX(-110px) translateY(60px) scale(1);
+            }
+            .sos-interaction-zone.open #maintenance-button {
+                transform: translateX(110px) translateY(60px) scale(1);
+            }
+
+            .close-button { top: 20px; right: 20px; width: 45px; height: 45px; font-size: 1.5rem; }
+            .live-data-container { flex-direction: column; width: 100%; gap: 10px; }
+            .live-data-item { width: 100%; justify-content: center; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Hidden audio players -->
+    <audio id="fire-audio" src="static/fire.mp3" preload="auto"></audio>
+    <audio id="health-audio" src="static/health.mp3" preload="auto"></audio>
+    <audio id="maintenance-audio" src="static/maintenance.mp3" preload="auto"></audio>
+    <audio id="activate-audio" src="static/activate.mp3" preload="auto"></audio>
+    <audio id="sent-audio" src="static/sent.mp3" preload="auto"></audio>
+
+
+    <div class="app-view">
+
+        <a href="{{ url_for('SO_dashboard') }}" class="close-button" aria-label="Close and return to dashboard">
+            <i class='bx bx-x'></i>
+        </a>
+        
+        <div class="sos-container">
+            <header class="sos-header">
+                <h1>Rapid SOS Beacon</h1>
+                <p>Press the central beacon to reveal emergency options.</p>
+            </header>
+            
+            <div class="sos-interaction-zone" id="sos-zone">
+                <div class="sos-option" id="health-button" aria-label="Health Emergency" data-type="health"><i class='bx bxs-first-aid'></i></div>
+                <div class="sos-option" id="fire-button" aria-label="Fire Emergency" data-type="fire"><i class='bx bxs-hot'></i></div>
+                <div class="sos-option" id="maintenance-button" aria-label="Maintenance Emergency" data-type="maintenance"><i class='bx bxs-wrench'></i></div>
+
+                <div class="sos-trigger-button" id="sos-trigger">
+                    <div class="sos-icon"><i class='bx bx-broadcast'></i></div>
+                    <span class="sos-label">SOS</span>
+                    <div class="sos-confirmation-icon"><i class='bx bx-check-shield'></i></div>
+                </div>
+            </div>
+
+            <footer class="sos-footer">
+                <p class="sos-status" id="sos-status"></p>
+                <div class="live-data-container">
+                    <div class="live-data-item">
+                        <i class='bx bxs-calendar-event'></i>
+                        <span id="live-date">Loading...</span>
+                    </div>
+                    <div class="live-data-item">
+                        <i class='bx bxs-time-five'></i>
+                        <span id="live-time">Loading...</span>
+                    </div>
+                    <div class="live-data-item">
+                        <i class='bx bxs-navigation'></i>
+                        <span id="live-location">Fetching location...</span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const zone = document.getElementById('sos-zone');
+            const trigger = document.getElementById('sos-trigger');
+            const options = document.querySelectorAll('.sos-option');
+            const statusText = document.getElementById('sos-status');
+            
+            const dateEl = document.getElementById('live-date');
+            const timeEl = document.getElementById('live-time');
+            const locationEl = document.getElementById('live-location');
+
+            const sounds = {
+                fire: document.getElementById('fire-audio'),
+                health: document.getElementById('health-audio'),
+                maintenance: document.getElementById('maintenance-audio'),
+                activate: document.getElementById('activate-audio'),
+                sent: document.getElementById('sent-audio')
+            };
+            
+            let isDispatched = false;
+            let currentlyPlayingSound = null; 
+
+            const stopAllSounds = () => {
+                for (const key in sounds) {
+                    if (sounds.hasOwnProperty(key)) {
+                        sounds[key].pause();
+                        sounds[key].currentTime = 0;
+                        sounds[key].loop = false;
+                    }
+                }
+                currentlyPlayingSound = null;
+            };
+
+            const toggleOptions = () => {
+                if (currentlyPlayingSound) {
+                    stopAllSounds();
+                    isDispatched = false;
+                    trigger.classList.remove('sent', 'active');
+                    statusText.classList.remove('sent');
+                    statusText.textContent = "";
+                    zone.classList.remove('open');
+                    return;
+                }
+                
+                if (isDispatched) return;
+                zone.classList.toggle('open');
+                trigger.classList.toggle('active');
+                if (zone.classList.contains('open') && sounds.activate) {
+                    sounds.activate.play().catch(e => console.error(e));
+                }
+            };
+            
+            const dispatchAlert = (type) => {
+                if (!type || isDispatched) return;
+
+                isDispatched = true;
+                stopAllSounds();
+                
+                if(sounds[type]) {
+                  sounds[type].loop = true;
+                  sounds[type].play().catch(e => console.error("Playback failed:", e));
+                  currentlyPlayingSound = sounds[type];
+                }
+
+                trigger.classList.add('sent');
+                trigger.classList.remove('active');
+                statusText.textContent = "Signal Dispatched!";
+                statusText.classList.add('sent');
+                zone.classList.remove('open');
+                if (sounds.sent) sounds.sent.play().catch(e => console.error(e));
+                
+                setTimeout(() => {
+                    isDispatched = false;
+                    trigger.classList.remove('sent');
+                    statusText.classList.remove('sent');
+                    statusText.textContent = "";
+                }, 4000); 
+            };
+
+            // Event Listeners
+            trigger.addEventListener('click', toggleOptions);
+
+            options.forEach(option => {
+                option.addEventListener('click', (event) => {
+                    event.stopPropagation(); 
+                    const type = option.getAttribute('data-type');
+                    dispatchAlert(type);
+                });
+            });
+            
+            setInterval(() => {
+                const now = new Date();
+                const dateOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+                dateEl.textContent = now.toLocaleDateString(undefined, dateOptions);
+                timeEl.textContent = now.toLocaleTimeString();
+            }, 1000);
+
+            if ('geolocation' in navigator) {
+                navigator.geolocation.watchPosition(position => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lon = position.coords.longitude.toFixed(6);
+                    locationEl.textContent = `Lat: ${lat}, Lon: ${lon}`;
+                }, () => {
+                    locationEl.textContent = 'Location access denied';
+                }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+            } else {
+                locationEl.textContent = 'Geolocation not supported';
+            }
+
+        });
+    </script>
+</body>
+</html>
