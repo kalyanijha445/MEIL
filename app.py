@@ -23,7 +23,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 
-GEMINI_API_KEY = "AIzaSyBKDXNYM_RTpDrjLZyF-4G3aldD5j8qdGA"
+GEMINI_API_KEY = "AIzaSyCXlI8LJOlHI9pUyqeJKEVdaZEgjh2OUVc"
 
 
 try:
