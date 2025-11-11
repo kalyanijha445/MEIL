@@ -985,7 +985,7 @@ def analyze_new():
     """
     # MODIFICATION END
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp") 
+        model = genai.GenerativeModel("gemini-2.0-flash") 
         response = model.generate_content([prompt] + image_parts)
         ai_text = response.text
         
@@ -1049,7 +1049,7 @@ def analyze_attendance():
     """
     
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp") 
+        model = genai.GenerativeModel("gemini-2.0-flash") 
         response = model.generate_content([prompt] + image_parts)
         
         attendees = []
